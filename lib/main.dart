@@ -1,65 +1,30 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:groovy/screens/email_login.dart';
+import 'package:groovy/services/auth.dart';
+import 'package:provider/provider.dart';
+import 'screens/determine_auth_status.dart';
+import 'models/budget.dart';
 
 void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Groovy',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      debugShowCheckedModeBanner: false,
-      home: MyHomePage(title: 'Groovy'),
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
-
-  final String title;
-
-  @override
-  _MyHomePageState createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.display1,
-            ),
-          ],
+    return ChangeNotifierProvider(
+      builder: (context) => BudgetModel(),
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Groovy',
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
+        initialRoute: '/',
+        routes: {
+          '/': (context) => DetermineAuthStatusScreen(
+                auth: Auth(),
+              ),
+          '/emailLogin': (context) => EmailLoginScreen()
+        },
       ),
     );
   }
