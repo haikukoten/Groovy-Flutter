@@ -18,7 +18,7 @@ class _ChooseLoginScreen extends State<ChooseLoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blue,
+        backgroundColor: Theme.of(context).primaryColor,
         title: Text("Sign Up"),
       ),
       body: Center(
@@ -46,7 +46,7 @@ class _ChooseLoginScreen extends State<ChooseLoginScreen> {
                     var budgetModel = Provider.of<BudgetModel>(context);
                     budgetModel.auth = widget.auth;
                     budgetModel.onSignedIn = widget.onSignedIn;
-                    Navigator.pushReplacementNamed(context, '/emailLogin');
+                    Navigator.pushNamed(context, '/emailLogin');
                   })
             ],
           ),

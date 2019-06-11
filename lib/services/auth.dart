@@ -10,6 +10,8 @@ abstract class BaseAuth {
 
   Future<void> sendEmailVerification();
 
+  Future<void> sendPasswordRecoveryEmail(String email);
+
   Future<void> signOut();
 
   Future<bool> isEmailVerified();
@@ -35,13 +37,17 @@ class Auth implements BaseAuth {
     return user;
   }
 
-  Future<void> signOut() async {
-    return _firebaseAuth.signOut();
-  }
-
   Future<void> sendEmailVerification() async {
     FirebaseUser user = await _firebaseAuth.currentUser();
     user.sendEmailVerification();
+  }
+
+  Future<void> sendPasswordRecoveryEmail(String email) async {
+    await _firebaseAuth.sendPasswordResetEmail(email: email);
+  }
+
+  Future<void> signOut() async {
+    return _firebaseAuth.signOut();
   }
 
   Future<bool> isEmailVerified() async {

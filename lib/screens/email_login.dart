@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -7,13 +9,15 @@ class EmailLoginScreen extends StatefulWidget {
   EmailLoginScreen({Key key}) : super(key: key);
 
   @override
-  State<StatefulWidget> createState() => new _EmailLoginScreen();
+  State<StatefulWidget> createState() => _EmailLoginScreen();
 }
 
 enum FormMode { LOGIN, SIGNUP }
 
 class _EmailLoginScreen extends State<EmailLoginScreen> {
-  final _formKey = new GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
+  var emailTextController = TextEditingController();
+  var passwordRecoveryEmailController = TextEditingController();
 
   String _email;
   String _password;
@@ -41,7 +45,6 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
     ]);
 
     void _changeFormToSignUp() {
-      _formKey.currentState.reset();
       _errorMessage = "";
       setState(() {
         _formMode = FormMode.SIGNUP;
@@ -49,7 +52,6 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
     }
 
     void _changeFormToLogin() {
-      _formKey.currentState.reset();
       _errorMessage = "";
       setState(() {
         _formMode = FormMode.LOGIN;
@@ -58,7 +60,15 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
 
     Widget _showCircularProgress() {
       if (_isLoading) {
-        return Center(child: CircularProgressIndicator());
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          child: Container(
+            color: Colors.grey[100].withOpacity(0.8),
+            child: Center(
+              child: CircularProgressIndicator(),
+            ),
+          ),
+        );
       }
       return Container(
         height: 0.0,
@@ -66,35 +76,19 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
       );
     }
 
-    Widget _showErrorMessage() {
-      if (_errorMessage != null && _errorMessage.length > 0) {
-        return new Text(
-          _errorMessage,
-          style: TextStyle(
-              fontSize: 13.0,
-              color: Colors.red,
-              height: 1.0,
-              fontWeight: FontWeight.w300),
-        );
-      } else {
-        return new Container(
-          height: 0.0,
-        );
-      }
-    }
-
     Widget _showEmailInput() {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(0.0, 100.0, 0.0, 0.0),
-        child: new TextFormField(
+        padding: const EdgeInsets.fromLTRB(10.0, 25.0, 10.0, 0.0),
+        child: TextFormField(
           maxLines: 1,
           keyboardType: TextInputType.emailAddress,
-          autofocus: false,
-          decoration: new InputDecoration(
+          autofocus: true,
+          controller: emailTextController,
+          decoration: InputDecoration(
               hintText: 'Email',
-              icon: new Icon(
+              icon: Icon(
                 Icons.mail,
-                color: Colors.grey,
+                color: Colors.grey[400],
               )),
           validator: (value) {
             if (value.isEmpty) {
@@ -111,23 +105,23 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
 
     Widget _showPasswordInput() {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(0.0, 15.0, 0.0, 0.0),
-        child: new TextFormField(
+        padding: const EdgeInsets.fromLTRB(10.0, 15.0, 10.0, 0.0),
+        child: TextFormField(
           maxLines: 1,
           obscureText: true,
           autofocus: false,
-          decoration: new InputDecoration(
+          decoration: InputDecoration(
               hintText: 'Password',
-              icon: new Icon(
+              icon: Icon(
                 Icons.lock,
-                color: Colors.grey,
+                color: Colors.grey[400],
               )),
           validator: (value) {
             if (value.isEmpty) {
               setState(() {
                 _isLoading = false;
               });
-              return 'Email can\'t be empty';
+              return 'Password can\'t be empty';
             }
           },
           onSaved: (value) => _password = value,
@@ -135,18 +129,130 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
       );
     }
 
-    Widget _showSecondaryButton() {
-      return new FlatButton(
-        child: _formMode == FormMode.LOGIN
-            ? new Text('Create an account',
-                style:
-                    new TextStyle(fontSize: 18.0, fontWeight: FontWeight.w300))
-            : new Text('Have an account? Sign in',
-                style:
-                    new TextStyle(fontSize: 18.0, fontWeight: FontWeight.w300)),
+    Future<void> _showDialog(String title, String message,
+        [Function func]) async {
+      return showDialog<void>(
+        context: context,
+        barrierDismissible: true,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text(title),
+            content: SingleChildScrollView(
+              child: ListBody(
+                children: <Widget>[
+                  Text(message),
+                ],
+              ),
+            ),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(32.0))),
+            actions: <Widget>[
+              FlatButton(
+                child: Text('OK'),
+                onPressed: () {
+                  if (func != null) {
+                    func();
+                  }
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
+
+    Future<void> _showInputDialog(String title, String message,
+        [Widget input, Function func]) async {
+      return showDialog<void>(
+        context: context,
+        barrierDismissible: true,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text(title),
+            content: SingleChildScrollView(
+              child: ListBody(
+                children: <Widget>[
+                  Text(message),
+                  input != null ? input : null,
+                ],
+              ),
+            ),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(32.0))),
+            actions: <Widget>[
+              FlatButton(
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.grey),
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              FlatButton(
+                child: Text(
+                  'Send',
+                  style: TextStyle(color: Theme.of(context).primaryColor),
+                ),
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  setState(() {
+                    _isLoading = true;
+                  });
+
+                  if (title == "Reset Password") {
+                    try {
+                      if (passwordRecoveryEmailController.text != "" &&
+                          passwordRecoveryEmailController.text != null) {
+                        await func(passwordRecoveryEmailController.text);
+                        _isLoading = false;
+                        _showDialog("Success",
+                            "Check your email to reset your password");
+                      } else {
+                        setState(() {
+                          _isLoading = false;
+                        });
+                      }
+                    } catch (e) {
+                      setState(() {
+                        _isLoading = false;
+                        _showDialog("Email cannot send", e.message);
+                      });
+                    }
+                  }
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
+
+    Widget _showPasswordRecoveryButton() {
+      return FlatButton(
+        padding: EdgeInsets.only(top: 1.0),
+        child: _formMode == FormMode.LOGIN &&
+                emailTextController.text.isNotEmpty
+            ? Text('Trouble signing in?',
+                style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.w200))
+            : SizedBox.shrink(),
         onPressed: _formMode == FormMode.LOGIN
-            ? _changeFormToSignUp
-            : _changeFormToLogin,
+            ? () {
+                passwordRecoveryEmailController.text = emailTextController.text;
+                _showInputDialog(
+                    "Reset Password",
+                    "Instructions to reset your password will be sent to:",
+                    Container(
+                      padding: EdgeInsets.only(top: 7.0),
+                      child: TextField(
+                        controller: passwordRecoveryEmailController,
+                        enabled: false,
+                      ),
+                    ),
+                    budgetModel.auth.sendPasswordRecoveryEmail);
+              }
+            : null,
       );
     }
 
@@ -161,26 +267,10 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
     }
 
     void _showVerifyEmailSentDialog() {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          // return object of type Dialog
-          return AlertDialog(
-            title: new Text("Verify your account"),
-            content:
-                new Text("Link to verify account has been sent to your email"),
-            actions: <Widget>[
-              new FlatButton(
-                child: new Text("Dismiss"),
-                onPressed: () {
-                  _changeFormToLogin();
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          );
-        },
-      );
+      _showDialog(
+          "Verify your account",
+          "Link to verify account has been sent to your email",
+          _changeFormToLogin);
     }
 
     // Perform login or signup
@@ -215,53 +305,67 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
           setState(() {
             _isLoading = false;
             _errorMessage = e.message;
+            _showDialog("Yo", _errorMessage);
           });
         }
       }
     }
 
     Widget _showPrimaryButton() {
-      return new Padding(
-          padding: EdgeInsets.fromLTRB(0.0, 45.0, 0.0, 0.0),
+      return Padding(
+          padding: EdgeInsets.fromLTRB(50.0, 15.0, 50.0, 0.0),
           child: SizedBox(
-            height: 40.0,
-            child: new RaisedButton(
+            height: 55.0,
+            child: RaisedButton(
               elevation: 5.0,
-              shape: new RoundedRectangleBorder(
-                  borderRadius: new BorderRadius.circular(30.0)),
-              color: Colors.blue,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30.0)),
+              color: Theme.of(context).primaryColor,
               child: _formMode == FormMode.LOGIN
-                  ? new Text('Login',
-                      style: new TextStyle(fontSize: 20.0, color: Colors.white))
-                  : new Text('Create account',
-                      style:
-                          new TextStyle(fontSize: 20.0, color: Colors.white)),
+                  ? Text('Login',
+                      style: TextStyle(fontSize: 20.0, color: Colors.white))
+                  : Text('Sign Up',
+                      style: TextStyle(fontSize: 20.0, color: Colors.white)),
               onPressed: _validateAndSubmit,
             ),
           ));
     }
 
+    Widget _showSecondaryButton() {
+      return FlatButton(
+        padding: EdgeInsets.only(top: 12.0),
+        child: _formMode == FormMode.LOGIN
+            ? Text('Create an account',
+                style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.w300))
+            : Text('Have an account? Login',
+                style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.w300)),
+        onPressed: _formMode == FormMode.LOGIN
+            ? _changeFormToSignUp
+            : _changeFormToLogin,
+      );
+    }
+
     Widget _showBody() {
-      return new Container(
+      return Container(
           padding: EdgeInsets.all(16.0),
-          child: new Form(
+          child: Form(
             key: _formKey,
-            child: new ListView(
+            child: ListView(
               shrinkWrap: true,
               children: <Widget>[
                 _showEmailInput(),
                 _showPasswordInput(),
+                _showPasswordRecoveryButton(),
                 _showPrimaryButton(),
                 _showSecondaryButton(),
-                _showErrorMessage(),
               ],
             ),
           ));
     }
 
-    return new Scaffold(
-        appBar: new AppBar(
-          title: new Text('Flutter login demo'),
+    return Scaffold(
+        appBar: AppBar(
+          title: _formMode == FormMode.LOGIN ? Text("Login") : Text("Sign Up"),
         ),
         body: Stack(
           children: <Widget>[
