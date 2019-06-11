@@ -154,9 +154,11 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
                       if (passwordRecoveryEmailController.text != "" &&
                           passwordRecoveryEmailController.text != null) {
                         await func(passwordRecoveryEmailController.text);
-                        _isLoading = false;
                         _showDialog("Success",
                             "Check your email to reset your password");
+                        setState(() {
+                          _isLoading = false;
+                        });
                       } else {
                         setState(() {
                           _isLoading = false;
@@ -180,8 +182,7 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
     Widget _showPasswordRecoveryButton() {
       return FlatButton(
         padding: EdgeInsets.only(top: 1.0),
-        child: _formMode == FormMode.LOGIN &&
-                emailTextController.text.isNotEmpty
+        child: _formMode == FormMode.LOGIN
             ? Text('Trouble signing in?',
                 style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.w200))
             : SizedBox.shrink(),
@@ -190,12 +191,12 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
                 passwordRecoveryEmailController.text = emailTextController.text;
                 _showInputDialog(
                     "Reset Password",
-                    "Instructions to reset your password will be sent to:",
+                    "Get instructions sent to this email that explain how to reset your password",
                     Container(
                       padding: EdgeInsets.only(top: 7.0),
                       child: TextField(
                         controller: passwordRecoveryEmailController,
-                        enabled: false,
+                        autofocus: true,
                       ),
                     ),
                     budgetModel.auth.sendPasswordRecoveryEmail);
@@ -233,6 +234,8 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
           if (_formMode == FormMode.LOGIN) {
             userId = await budgetModel.auth.signIn(_email, _password);
             print('Signed in: $userId');
+            Navigator.of(context)
+                .pushNamedAndRemoveUntil("/", (Route<dynamic> route) => false);
           } else {
             userId = await budgetModel.auth.signUp(_email, _password);
             budgetModel.auth.sendEmailVerification();
