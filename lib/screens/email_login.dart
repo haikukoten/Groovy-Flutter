@@ -17,6 +17,7 @@ enum FormMode { LOGIN, SIGNUP }
 class _EmailLoginScreen extends State<EmailLoginScreen> {
   final _formKey = GlobalKey<FormState>();
   var emailTextController = TextEditingController();
+  var passwordFocusNode = FocusNode();
   var passwordRecoveryEmailController = TextEditingController();
 
   String _email;
@@ -73,59 +74,6 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
       return Container(
         height: 0.0,
         width: 0.0,
-      );
-    }
-
-    Widget _showEmailInput() {
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(10.0, 25.0, 10.0, 0.0),
-        child: TextFormField(
-          maxLines: 1,
-          keyboardType: TextInputType.emailAddress,
-          autofocus: true,
-          controller: emailTextController,
-          decoration: InputDecoration(
-              hintText: 'Email',
-              icon: Icon(
-                Icons.mail,
-                color: Colors.grey[400],
-              )),
-          validator: (value) {
-            if (value.isEmpty) {
-              setState(() {
-                _isLoading = false;
-              });
-              return 'Email can\'t be empty';
-            }
-          },
-          onSaved: (value) => _email = value,
-        ),
-      );
-    }
-
-    Widget _showPasswordInput() {
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(10.0, 15.0, 10.0, 0.0),
-        child: TextFormField(
-          maxLines: 1,
-          obscureText: true,
-          autofocus: false,
-          decoration: InputDecoration(
-              hintText: 'Password',
-              icon: Icon(
-                Icons.lock,
-                color: Colors.grey[400],
-              )),
-          validator: (value) {
-            if (value.isEmpty) {
-              setState(() {
-                _isLoading = false;
-              });
-              return 'Password can\'t be empty';
-            }
-          },
-          onSaved: (value) => _password = value,
-        ),
       );
     }
 
@@ -309,6 +257,66 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
           });
         }
       }
+    }
+
+    Widget _showEmailInput() {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(10.0, 25.0, 10.0, 0.0),
+        child: TextFormField(
+          maxLines: 1,
+          keyboardType: TextInputType.emailAddress,
+          autofocus: true,
+          controller: emailTextController,
+          decoration: InputDecoration(
+              hintText: 'Email',
+              icon: Icon(
+                Icons.mail,
+                color: Colors.grey[400],
+              )),
+          validator: (value) {
+            if (value.isEmpty) {
+              setState(() {
+                _isLoading = false;
+              });
+              return 'Email can\'t be empty';
+            }
+          },
+          onFieldSubmitted: (value) {
+            FocusScope.of(context).requestFocus(passwordFocusNode);
+          },
+          onSaved: (value) => _email = value,
+        ),
+      );
+    }
+
+    Widget _showPasswordInput() {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(10.0, 15.0, 10.0, 0.0),
+        child: TextFormField(
+          maxLines: 1,
+          obscureText: true,
+          autofocus: false,
+          decoration: InputDecoration(
+              hintText: 'Password',
+              icon: Icon(
+                Icons.lock,
+                color: Colors.grey[400],
+              )),
+          focusNode: passwordFocusNode,
+          onFieldSubmitted: (value) {
+            _validateAndSubmit();
+          },
+          validator: (value) {
+            if (value.isEmpty) {
+              setState(() {
+                _isLoading = false;
+              });
+              return 'Password can\'t be empty';
+            }
+          },
+          onSaved: (value) => _password = value,
+        ),
+      );
     }
 
     Widget _showPrimaryButton() {
