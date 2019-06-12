@@ -3,7 +3,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:groovy/models/budget.dart';
+import 'package:Groovy/models/budget.dart';
+import 'shared/shared_widgets.dart';
 
 class EmailLoginScreen extends StatefulWidget {
   EmailLoginScreen({Key key}) : super(key: key);
@@ -26,12 +27,10 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
 
   // Initial form is login form
   FormMode _formMode = FormMode.LOGIN;
-  bool _isLoading;
 
   @override
   void initState() {
     _errorMessage = "";
-    _isLoading = false;
     super.initState();
   }
 
@@ -57,24 +56,6 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
       setState(() {
         _formMode = FormMode.LOGIN;
       });
-    }
-
-    Widget _showCircularProgress() {
-      if (_isLoading) {
-        return BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-          child: Container(
-            color: Colors.grey[100].withOpacity(0.8),
-            child: Center(
-              child: CircularProgressIndicator(),
-            ),
-          ),
-        );
-      }
-      return Container(
-        height: 0.0,
-        width: 0.0,
-      );
     }
 
     Future<void> _showDialog(String title, String message,
@@ -146,29 +127,29 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
                 onPressed: () async {
                   Navigator.of(context).pop();
                   setState(() {
-                    _isLoading = true;
+                    budgetModel.isLoading = true;
                   });
 
                   if (title == "Reset Password") {
                     try {
                       if (passwordRecoveryEmailController.text != "" &&
                           passwordRecoveryEmailController.text != null) {
+                        setState(() {
+                          budgetModel.isLoading = false;
+                        });
                         await func(passwordRecoveryEmailController.text);
                         _showDialog("Success",
                             "Check your email to reset your password");
-                        setState(() {
-                          _isLoading = false;
-                        });
                       } else {
                         setState(() {
-                          _isLoading = false;
+                          budgetModel.isLoading = false;
                         });
                       }
                     } catch (e) {
                       setState(() {
-                        _isLoading = false;
-                        _showDialog("Email cannot send", e.message);
+                        budgetModel.isLoading = false;
                       });
+                      _showDialog("Try again", e.message);
                     }
                   }
                 },
@@ -226,7 +207,7 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
     void _validateAndSubmit() async {
       setState(() {
         _errorMessage = "";
-        _isLoading = true;
+        budgetModel.isLoading = true;
       });
       if (_validateAndSave()) {
         String userId = "";
@@ -243,7 +224,7 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
             print('Signed up user: $userId');
           }
           setState(() {
-            _isLoading = false;
+            budgetModel.isLoading = false;
           });
 
           if (userId != null &&
@@ -254,7 +235,7 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
         } catch (e) {
           print('Error: $e');
           setState(() {
-            _isLoading = false;
+            budgetModel.isLoading = false;
             _errorMessage = e.message;
             _showDialog("Yo", _errorMessage);
           });
@@ -279,7 +260,7 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
           validator: (value) {
             if (value.isEmpty) {
               setState(() {
-                _isLoading = false;
+                budgetModel.isLoading = false;
               });
               return 'Email can\'t be empty';
             }
@@ -312,7 +293,7 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
           validator: (value) {
             if (value.isEmpty) {
               setState(() {
-                _isLoading = false;
+                budgetModel.isLoading = false;
               });
               return 'Password can\'t be empty';
             }
@@ -381,7 +362,7 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
         body: Stack(
           children: <Widget>[
             _showBody(),
-            _showCircularProgress(),
+            showCircularProgress(context),
           ],
         ));
   }

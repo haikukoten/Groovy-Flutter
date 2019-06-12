@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:groovy/screens/email_login.dart';
-import 'package:groovy/services/auth.dart';
+import 'package:Groovy/screens/email_login.dart';
+import 'package:Groovy/services/auth.dart';
 import 'package:provider/provider.dart';
 import 'screens/determine_auth_status.dart';
 import 'models/budget.dart';

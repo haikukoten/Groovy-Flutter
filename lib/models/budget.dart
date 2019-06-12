@@ -1,6 +1,6 @@
 import 'dart:collection';
 import 'package:flutter/foundation.dart';
-import 'package:groovy/services/auth.dart';
+import 'package:Groovy/services/auth.dart';
 
 class BudgetModel extends ChangeNotifier {
   /// Internal, private state of user's budgets.
@@ -31,6 +31,20 @@ class BudgetModel extends ChangeNotifier {
   VoidCallback get onSignedIn => _onSignedIn;
   set onSignedIn(VoidCallback onSignedIn) {
     _onSignedIn = onSignedIn;
+    notifyListeners();
+  }
+
+  String _userEmail;
+  String get userEmail => _userEmail;
+  set userEmail(String email) {
+    _userEmail = email;
+    notifyListeners();
+  }
+
+  bool _isLoading = false;
+  bool get isLoading => _isLoading;
+  set isLoading(bool isLoading) {
+    _isLoading = isLoading;
     notifyListeners();
   }
 }
