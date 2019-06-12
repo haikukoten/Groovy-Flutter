@@ -1,10 +1,11 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' as prefix0;
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:Groovy/models/budget.dart';
-import 'shared/shared_widgets.dart';
+import '../shared/shared_widgets.dart';
 
 class EmailLoginScreen extends StatefulWidget {
   EmailLoginScreen({Key key}) : super(key: key);
@@ -77,7 +78,10 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
                 borderRadius: BorderRadius.all(Radius.circular(32.0))),
             actions: <Widget>[
               FlatButton(
-                child: Text('OK'),
+                child: Text(
+                  'OK',
+                  style: TextStyle(color: Colors.black),
+                ),
                 onPressed: () {
                   if (func != null) {
                     func();
@@ -178,6 +182,8 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
                       child: TextField(
                         controller: passwordRecoveryEmailController,
                         autofocus: true,
+                        cursorColor: Colors.black87,
+                        keyboardAppearance: Brightness.dark,
                       ),
                     ),
                     budgetModel.auth.sendPasswordRecoveryEmail);
@@ -247,6 +253,8 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
       return Padding(
         padding: const EdgeInsets.fromLTRB(10.0, 25.0, 10.0, 0.0),
         child: TextFormField(
+          cursorColor: Colors.black87,
+          keyboardAppearance: Brightness.dark,
           maxLines: 1,
           keyboardType: TextInputType.emailAddress,
           autofocus: true,
@@ -277,6 +285,8 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
       return Padding(
         padding: const EdgeInsets.fromLTRB(10.0, 15.0, 10.0, 0.0),
         child: TextFormField(
+          cursorColor: Colors.black87,
+          keyboardAppearance: Brightness.dark,
           maxLines: 1,
           obscureText: true,
           autofocus: false,
@@ -309,10 +319,10 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
           child: SizedBox(
             height: 55.0,
             child: RaisedButton(
-              elevation: 5.0,
+              elevation: 0.0,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30.0)),
-              color: Theme.of(context).primaryColor,
+              color: Colors.black87,
               child: _formMode == FormMode.LOGIN
                   ? Text('Login',
                       style: TextStyle(fontSize: 20.0, color: Colors.white))
@@ -358,6 +368,15 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
     return Scaffold(
         appBar: AppBar(
           title: _formMode == FormMode.LOGIN ? Text("Login") : Text("Sign Up"),
+          backgroundColor: Colors.white,
+          textTheme: TextTheme(
+              title: TextStyle(
+                  color: Colors.black87,
+                  fontSize: 20.0,
+                  fontWeight: FontWeight.w500)),
+          iconTheme: IconThemeData(color: Colors.black87),
+          brightness: Brightness.light,
+          elevation: 0.0,
         ),
         body: Stack(
           children: <Widget>[

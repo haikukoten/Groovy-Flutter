@@ -21,3 +21,10 @@ Widget showCircularProgress(BuildContext context) {
     width: 0.0,
   );
 }
+
+onBottom(Widget child) => Positioned.fill(
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: child,
+      ),
+    );

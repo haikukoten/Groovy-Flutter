@@ -1,11 +1,14 @@
 import 'dart:ui';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:Groovy/services/auth.dart';
 import 'package:provider/provider.dart';
 import 'package:Groovy/models/budget.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'shared/shared_widgets.dart';
+import '../shared/shared_widgets.dart';
+import 'animated/background.dart';
+import 'animated/wave.dart';
 
 class ChooseLoginScreen extends StatefulWidget {
   ChooseLoginScreen({Key key, this.auth, this.onSignedIn, this.onSocialSignIn})
@@ -27,6 +30,9 @@ class _ChooseLoginScreen extends State<ChooseLoginScreen> {
       DeviceOrientation.portraitDown,
     ]);
 
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark.copyWith(
+        statusBarColor: Colors.white, statusBarBrightness: Brightness.dark));
+
     var budgetModel = Provider.of<BudgetModel>(context);
 
     Widget _showBody() {
@@ -38,6 +44,7 @@ class _ChooseLoginScreen extends State<ChooseLoginScreen> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               RaisedButton(
+                  elevation: 0.0,
                   color: Colors.white,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.all(Radius.circular(32.0))),
@@ -77,6 +84,7 @@ class _ChooseLoginScreen extends State<ChooseLoginScreen> {
               Padding(
                 padding: EdgeInsets.only(top: 15.0),
                 child: RaisedButton(
+                    elevation: 0.0,
                     color: Color.fromRGBO(59, 87, 157, 1.0),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.all(Radius.circular(32.0))),
@@ -134,7 +142,8 @@ class _ChooseLoginScreen extends State<ChooseLoginScreen> {
               Padding(
                 padding: EdgeInsets.only(top: 15.0),
                 child: RaisedButton(
-                    color: Color.fromRGBO(219, 68, 55, 1.0),
+                    elevation: 0.0,
+                    color: Colors.red[400],
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.all(Radius.circular(32.0))),
                     child: new Row(
@@ -167,7 +176,27 @@ class _ChooseLoginScreen extends State<ChooseLoginScreen> {
 
     return Scaffold(
       body: Stack(
-        children: <Widget>[_showBody(), showCircularProgress(context)],
+        children: <Widget>[
+          Positioned.fill(
+            child: AnimatedBackground(),
+          ),
+          onBottom(AnimatedWave(
+            height: 100,
+            speed: 0.5,
+          )),
+          onBottom(AnimatedWave(
+            height: 120,
+            speed: 0.4,
+            offset: pi,
+          )),
+          onBottom(AnimatedWave(
+            height: 220,
+            speed: 0.7,
+            offset: pi / 2,
+          )),
+          _showBody(),
+          showCircularProgress(context)
+        ],
       ),
     );
   }
