@@ -9,8 +9,6 @@ PODS:
     - Bolts (~> 1.9)
   - FBSDKLoginKit (4.39.1):
     - FBSDKCoreKit
-  - Firebase/Analytics (6.2.0):
-    - Firebase/Core
   - Firebase/Auth (6.2.0):
     - Firebase/CoreOnly
     - FirebaseAuth (~> 6.1.1)
@@ -22,10 +20,6 @@ PODS:
   - Firebase/Database (6.2.0):
     - Firebase/CoreOnly
     - FirebaseDatabase (~> 6.0.0)
-  - firebase_analytics (0.0.1):
-    - Firebase/Analytics (~> 6.0)
-    - Firebase/Core
-    - Flutter
   - firebase_auth (0.0.1):
     - Firebase/Auth (~> 6.0)
     - Firebase/Core
@@ -118,7 +112,6 @@ PODS:
   - nanopb/encode (0.3.901)
 
 DEPENDENCIES:
-  - firebase_analytics (from `.symlinks/plugins/firebase_analytics/ios`)
   - firebase_auth (from `.symlinks/plugins/firebase_auth/ios`)
   - firebase_core (from `.symlinks/plugins/firebase_core/ios`)
   - firebase_database (from `.symlinks/plugins/firebase_database/ios`)
@@ -148,8 +141,6 @@ SPEC REPOS:
     - nanopb
 
 EXTERNAL SOURCES:
-  firebase_analytics:
-    :path: ".symlinks/plugins/firebase_analytics/ios"
   firebase_auth:
     :path: ".symlinks/plugins/firebase_auth/ios"
   firebase_core:
@@ -170,7 +161,6 @@ SPEC CHECKSUMS:
   FBSDKCoreKit: f442aa96179cc9b382bb4abeb7e340a47cca8f91
   FBSDKLoginKit: c3079d9a4db27c492287b1eed7a4272b28cf8a59
   Firebase: 5965bac23e7fcb5fa6d926ed429c9ecef8a2014e
-  firebase_analytics: e5181dde3c26c83748ab07aca073139a572ede7e
   firebase_auth: 7a2cc520766f90212b845a5b35316601707bfa25
   firebase_core: ce5006bb48508ee4e71e0f429a3f519bb8ee2961
   firebase_database: 99b15d6a0536ee969200b6eaf69bcd0b15b7b114

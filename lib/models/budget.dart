@@ -1,6 +1,7 @@
 import 'dart:collection';
 import 'package:flutter/foundation.dart';
 import 'package:Groovy/services/auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 class BudgetModel extends ChangeNotifier {
   /// Internal, private state of user's budgets.
@@ -51,16 +52,17 @@ class BudgetModel extends ChangeNotifier {
 
 @immutable
 class Budget {
-  final int key;
+  final String key;
   final String createdBy;
-  final List<String> hiddenFrom;
-  final List<String> history;
+  final List<dynamic> hiddenFrom;
+  final List<dynamic> history;
   final bool isShared;
-  final double left;
+  final int left;
   final String name;
-  final double setAmount;
-  final List<String> sharedWith;
-  final List<String> userDate;
+  final int setAmount;
+  final List<dynamic> sharedWith;
+  final int spent;
+  final List<dynamic> userDate;
 
   Budget({
     this.key,
@@ -72,6 +74,35 @@ class Budget {
     this.name,
     this.setAmount,
     this.sharedWith,
+    this.spent,
     this.userDate,
   });
+
+  Budget.fromSnapshot(DataSnapshot snapshot)
+      : key = snapshot.key,
+        createdBy = snapshot.value["createdBy"],
+        hiddenFrom = snapshot.value["hiddenFrom"],
+        history = snapshot.value["history"],
+        isShared = snapshot.value["isShared"],
+        left = snapshot.value["left"],
+        name = snapshot.value["name"],
+        setAmount = snapshot.value["setAmount"],
+        sharedWith = snapshot.value["sharedWith"],
+        spent = snapshot.value["spent"],
+        userDate = snapshot.value["userDate"];
+
+  toJson() {
+    return {
+      "createdBy": createdBy,
+      "hiddenFrom": hiddenFrom,
+      "history": history,
+      "isShared": isShared,
+      "left": left,
+      "name": name,
+      "setAmount": setAmount,
+      "sharedWith": sharedWith,
+      "spent": spent,
+      "userDate": userDate,
+    };
+  }
 }

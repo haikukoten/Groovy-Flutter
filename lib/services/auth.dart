@@ -10,7 +10,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 // Test that canceling Google login works in release mode
 
 abstract class BaseAuth {
-  Future<GoogleSignInAccount> googleSignIn();
+  Future<FirebaseUser> googleSignIn();
 
   Future<dynamic> facebookSignIn();
 
@@ -18,7 +18,7 @@ abstract class BaseAuth {
 
   Future<String> signUp(String email, String password);
 
-  Future<GoogleSignInAccount> getGoogleUser();
+  Future<FirebaseUser> getGoogleUser();
 
   Future<dynamic> getFacebookUser(String token);
 
@@ -48,10 +48,21 @@ class Auth implements BaseAuth {
   // Create secure storage for Facebook token
   final storage = new FlutterSecureStorage();
 
-  Future<GoogleSignInAccount> googleSignIn() async {
+  Future<FirebaseUser> googleSignIn() async {
     GoogleSignInAccount googleUser = await _googleSignIn.signIn();
-    if (googleUser.id != null) {
-      return googleUser;
+    final GoogleSignInAuthentication googleAuth =
+        await googleUser.authentication;
+    final AuthCredential credential = GoogleAuthProvider.getCredential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    final FirebaseUser user =
+        await _firebaseAuth.signInWithCredential(credential);
+
+    if (user.email != null) {
+      print("User: $user");
+      return user;
     } else {
       return null;
     }
@@ -90,9 +101,24 @@ class Auth implements BaseAuth {
     return user.uid;
   }
 
-  Future<GoogleSignInAccount> getGoogleUser() async {
+  Future<FirebaseUser> getGoogleUser() async {
     GoogleSignInAccount googleUser = await _googleSignIn.signInSilently();
-    return googleUser;
+    final GoogleSignInAuthentication googleAuth =
+        await googleUser.authentication;
+    final AuthCredential credential = GoogleAuthProvider.getCredential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    final FirebaseUser user =
+        await _firebaseAuth.signInWithCredential(credential);
+
+    if (user.email != null) {
+      print("User: $user");
+      return user;
+    } else {
+      return null;
+    }
   }
 
   Future<dynamic> getFacebookUser(String token) async {

@@ -1,3 +1,5 @@
+import 'dart:async';
+import "package:intl/intl.dart";
 import 'package:flutter/material.dart';
 import 'package:Groovy/services/auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -18,10 +20,14 @@ class BudgetListScreen extends StatefulWidget {
 }
 
 class _BudgetListScreen extends State<BudgetListScreen> {
-  List<Budget> _budgetList;
+  List<Budget> _budgetList = new List();
   final FirebaseDatabase _database = FirebaseDatabase.instance;
 
+  StreamSubscription<Event> _onBudgetAddedSubscription;
+  StreamSubscription<Event> _onBudgetChangedSubscription;
+
   Query _budgetQuery;
+  final currency = NumberFormat.simpleCurrency();
 
   @override
   void initState() {
@@ -33,7 +39,75 @@ class _BudgetListScreen extends State<BudgetListScreen> {
         .child("budgets")
         .orderByChild("createdBy")
         .equalTo(widget.userEmail);
-    print(_budgetQuery.toString());
+    _onBudgetAddedSubscription =
+        _budgetQuery.onChildAdded.listen(_onEntryAdded);
+    _onBudgetChangedSubscription =
+        _budgetQuery.onChildChanged.listen(_onEntryChanged);
+  }
+
+  @override
+  void dispose() {
+    _onBudgetAddedSubscription.cancel();
+    _onBudgetChangedSubscription.cancel();
+    super.dispose();
+  }
+
+  _onEntryChanged(Event event) {
+    var oldBudget = _budgetList.singleWhere((budget) {
+      return budget.key == event.snapshot.key;
+    });
+
+    setState(() {
+      _budgetList[_budgetList.indexOf(oldBudget)] =
+          Budget.fromSnapshot(event.snapshot);
+    });
+  }
+
+  _onEntryAdded(Event event) {
+    setState(() {
+      _budgetList.add(Budget.fromSnapshot(event.snapshot));
+    });
+  }
+
+  Widget _showBudgetList() {
+    if (_budgetList.length > 0) {
+      return ListView.builder(
+          shrinkWrap: true,
+          itemCount: _budgetList.length,
+          itemBuilder: (BuildContext context, int index) {
+            String budgetId = _budgetList[index].key;
+            String name = _budgetList[index].name;
+            int spent = _budgetList[index].spent;
+            int setAmount = _budgetList[index].setAmount;
+            return Dismissible(
+              key: Key(budgetId),
+              background: Container(color: Colors.red),
+              onDismissed: (direction) async {
+                // _deleteTodo(todoId, index);
+                print("deleted");
+              },
+              child: ListTile(
+                title: Text(
+                  name,
+                  style: TextStyle(fontSize: 20.0),
+                ),
+                subtitle: Row(
+                  children: <Widget>[
+                    Text(
+                        "${currency.format(spent)} of ${currency.format(setAmount)}"),
+                  ],
+                ),
+              ),
+            );
+          });
+    } else {
+      return Center(
+          child: Text(
+        "Welcome. Your list is empty",
+        textAlign: TextAlign.center,
+        style: TextStyle(fontSize: 30.0),
+      ));
+    }
   }
 
   @override
@@ -69,12 +143,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
           ],
         ),
         body: Stack(
-          children: <Widget>[
-            Center(
-              child: Text("Budgets go here"),
-            ),
-            showCircularProgress(context)
-          ],
+          children: <Widget>[_showBudgetList(), showCircularProgress(context)],
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () {

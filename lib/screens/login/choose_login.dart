@@ -1,11 +1,11 @@
 import 'dart:ui';
 import 'dart:math';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:Groovy/services/auth.dart';
 import 'package:provider/provider.dart';
 import 'package:Groovy/models/budget.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import '../shared/shared_widgets.dart';
 import 'animated/background.dart';
 import 'animated/wave.dart';
@@ -67,11 +67,10 @@ class _ChooseLoginScreen extends State<ChooseLoginScreen> {
                       budgetModel.isLoading = true;
                     });
                     try {
-                      GoogleSignInAccount googleUser =
-                          await widget.auth.googleSignIn();
+                      FirebaseUser user = await widget.auth.googleSignIn();
 
-                      if (googleUser.email != null && googleUser.email != "") {
-                        budgetModel.userEmail = googleUser.email;
+                      if (user.email != null && user.email != "") {
+                        budgetModel.userEmail = user.email;
                         widget.onSocialSignIn();
                         setState(() {
                           budgetModel.isLoading = false;
