@@ -4,7 +4,6 @@ import 'package:Groovy/services/auth.dart';
 import 'package:Groovy/screens/budget_list.dart';
 import 'package:provider/provider.dart';
 import 'package:Groovy/models/budget.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class DetermineAuthStatusScreen extends StatefulWidget {
   DetermineAuthStatusScreen({this.auth});
@@ -24,65 +23,20 @@ enum AuthStatus {
 class _DetermineAuthStatusScreenState extends State<DetermineAuthStatusScreen> {
   AuthStatus authStatus = AuthStatus.NOT_DETERMINED;
   String _userEmail = "";
-  // Create secure storage for Facebook token
-  final storage = new FlutterSecureStorage();
 
   @override
   void initState() {
     super.initState();
-    _loginCurrentUser();
-  }
-
-  void _loginCurrentUser() async {
-    // Check if user is signed in with Google
-    if (await widget.auth.isGoogleUserSignedIn()) {
-      widget.auth.getGoogleUser().then((googleUser) {
-        setState(() {
-          if (googleUser != null) {
-            _userEmail = googleUser.email;
-          }
-          authStatus = googleUser?.email == null
-              ? AuthStatus.NOT_LOGGED_IN
-              : AuthStatus.LOGGED_IN;
-        });
-      });
-    }
-    // Check if user is signed in with Facebook
-    else if (await widget.auth.isFacebookUserSignedIn()) {
-      String token = await storage.read(key: "fbToken");
-      if (token != null) {
-        widget.auth.getFacebookUser(token).then((facebookUser) {
-          setState(() {
-            if (facebookUser != null && facebookUser["email"] != null) {
-              _userEmail = facebookUser["email"];
-            }
-            authStatus = facebookUser["email"] == null
-                ? AuthStatus.NOT_LOGGED_IN
-                : AuthStatus.LOGGED_IN;
-          });
-        });
-      }
-    }
-
-    // Check if user is signed in with email
-    else if (await widget.auth.getCurrentUser() != null) {
-      widget.auth.getCurrentUser().then((user) {
-        setState(() {
-          if (user != null) {
-            _userEmail = user?.email;
-          }
-          authStatus = user?.email == null
-              ? AuthStatus.NOT_LOGGED_IN
-              : AuthStatus.LOGGED_IN;
-        });
-      });
-    }
-    // User not logged in
-    else {
+    widget.auth.getCurrentUser().then((user) {
       setState(() {
-        authStatus = AuthStatus.NOT_LOGGED_IN;
+        if (user != null) {
+          _userEmail = user?.email;
+        }
+        authStatus = user?.email == null
+            ? AuthStatus.NOT_LOGGED_IN
+            : AuthStatus.LOGGED_IN;
       });
-    }
+    });
   }
 
   void _onLoggedIn() {

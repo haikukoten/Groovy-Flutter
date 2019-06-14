@@ -1,10 +1,7 @@
 import 'dart:async';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_login/flutter_facebook_login.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 // Add Android release keys for Firebase & Facebook
 // Test that canceling Google login works in release mode
@@ -18,9 +15,7 @@ abstract class BaseAuth {
 
   Future<String> signUp(String email, String password);
 
-  Future<FirebaseUser> getGoogleUser();
-
-  Future<dynamic> getFacebookUser(String token);
+  Future<FirebaseUser> getFirebaseUserFrom(dynamic authUser);
 
   Future<FirebaseUser> getCurrentUser();
 
@@ -30,36 +25,17 @@ abstract class BaseAuth {
 
   Future<void> signOut();
 
-  Future<void> googleSignOut();
-
-  Future<void> facebookSignOut();
-
   Future<bool> isEmailVerified();
-
-  Future<dynamic> isGoogleUserSignedIn();
-
-  Future<bool> isFacebookUserSignedIn();
 }
 
 class Auth implements BaseAuth {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FacebookLogin _facebookLogin = FacebookLogin();
-  // Create secure storage for Facebook token
-  final storage = new FlutterSecureStorage();
 
   Future<FirebaseUser> googleSignIn() async {
     GoogleSignInAccount googleUser = await _googleSignIn.signIn();
-    final GoogleSignInAuthentication googleAuth =
-        await googleUser.authentication;
-    final AuthCredential credential = GoogleAuthProvider.getCredential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
-
-    final FirebaseUser user =
-        await _firebaseAuth.signInWithCredential(credential);
-
+    FirebaseUser user = await getFirebaseUserFrom(googleUser);
     if (user.email != null) {
       print("User: $user");
       return user;
@@ -77,8 +53,7 @@ class Auth implements BaseAuth {
     switch (_login.status) {
       case FacebookLoginStatus.loggedIn:
         String token = _login.accessToken.token;
-        await storage.write(key: "fbToken", value: token);
-        return await getFacebookUser(token);
+        return await getFirebaseUserFrom(token);
         break;
       case FacebookLoginStatus.cancelledByUser:
         return null;
@@ -101,35 +76,22 @@ class Auth implements BaseAuth {
     return user.uid;
   }
 
-  Future<FirebaseUser> getGoogleUser() async {
-    GoogleSignInAccount googleUser = await _googleSignIn.signInSilently();
-    final GoogleSignInAuthentication googleAuth =
-        await googleUser.authentication;
-    final AuthCredential credential = GoogleAuthProvider.getCredential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
+  Future<FirebaseUser> getFirebaseUserFrom(dynamic auth) async {
+    AuthCredential credential;
+    if (auth.runtimeType == GoogleSignInAccount) {
+      final GoogleSignInAuthentication googleAuth = await auth.authentication;
+      credential = GoogleAuthProvider.getCredential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+    } else {
+      credential = FacebookAuthProvider.getCredential(accessToken: auth);
+    }
 
     final FirebaseUser user =
         await _firebaseAuth.signInWithCredential(credential);
 
-    if (user.email != null) {
-      print("User: $user");
-      return user;
-    } else {
-      return null;
-    }
-  }
-
-  Future<dynamic> getFacebookUser(String token) async {
-    final graphResponse = await http.get(
-        'https://graph.facebook.com/v2.12/me?fields=name,first_name,last_name,email&access_token=$token');
-    final profile = json.decode(graphResponse.body);
-    if (profile["email"] != null) {
-      return profile;
-    } else {
-      return null;
-    }
+    return user;
   }
 
   Future<FirebaseUser> getCurrentUser() async {
@@ -146,37 +108,12 @@ class Auth implements BaseAuth {
     await _firebaseAuth.sendPasswordResetEmail(email: email);
   }
 
-  Future<void> googleSignOut() async {
-    return _googleSignIn.signOut();
-  }
-
-  Future<void> facebookSignOut() async {
-    return _facebookLogin.logOut();
-  }
-
   Future<void> signOut() async {
-    if (await isGoogleUserSignedIn()) {
-      return googleSignOut();
-    } else if (await isFacebookUserSignedIn()) {
-      await storage.delete(key: "fbToken");
-      return facebookSignOut();
-    } else {
-      return _firebaseAuth.signOut();
-    }
+    return _firebaseAuth.signOut();
   }
 
   Future<bool> isEmailVerified() async {
     FirebaseUser user = await _firebaseAuth.currentUser();
     return user.isEmailVerified;
-  }
-
-  Future<bool> isGoogleUserSignedIn() async {
-    bool isSignedIn = await _googleSignIn.isSignedIn();
-    return isSignedIn;
-  }
-
-  Future<bool> isFacebookUserSignedIn() async {
-    bool isSignedIn = await _facebookLogin.isLoggedIn;
-    return isSignedIn;
   }
 }

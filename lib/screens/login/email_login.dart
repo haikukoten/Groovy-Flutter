@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:Groovy/models/budget.dart';
-import '../shared/shared_widgets.dart';
+import '../shared/widgets.dart';
 
 class EmailLoginScreen extends StatefulWidget {
   EmailLoginScreen({Key key}) : super(key: key);
@@ -57,42 +57,6 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
       });
     }
 
-    Future<void> _showDialog(String title, String message,
-        [Function func]) async {
-      return showDialog<void>(
-        context: context,
-        barrierDismissible: true,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text(title),
-            content: SingleChildScrollView(
-              child: ListBody(
-                children: <Widget>[
-                  Text(message),
-                ],
-              ),
-            ),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(32.0))),
-            actions: <Widget>[
-              FlatButton(
-                child: Text(
-                  'OK',
-                  style: TextStyle(color: Colors.black),
-                ),
-                onPressed: () {
-                  if (func != null) {
-                    func();
-                  }
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          );
-        },
-      );
-    }
-
     Future<void> _showInputDialog(String title, String message,
         [Widget input, Function func]) async {
       return showDialog<void>(
@@ -140,7 +104,7 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
                           budgetModel.isLoading = false;
                         });
                         await func(passwordRecoveryEmailController.text);
-                        _showDialog("Success",
+                        showAlertDialog(context, "Success",
                             "Check your email to reset your password");
                       } else {
                         setState(() {
@@ -151,7 +115,7 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
                       setState(() {
                         budgetModel.isLoading = false;
                       });
-                      _showDialog("Try again", e.message);
+                      showAlertDialog(context, "Try again", e.message);
                     }
                   }
                 },
@@ -201,7 +165,8 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
     }
 
     void _showVerifyEmailSentDialog() {
-      _showDialog(
+      showAlertDialog(
+          context,
           "Verify your account",
           "Link to verify account has been sent to your email",
           _changeFormToLogin);
@@ -241,7 +206,7 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
           setState(() {
             budgetModel.isLoading = false;
             _errorMessage = e.message;
-            _showDialog("Yo", _errorMessage);
+            showAlertDialog(context, "Yo", _errorMessage);
           });
         }
       }

@@ -6,9 +6,9 @@ import 'package:flutter/services.dart';
 import 'package:Groovy/services/auth.dart';
 import 'package:provider/provider.dart';
 import 'package:Groovy/models/budget.dart';
-import '../shared/shared_widgets.dart';
-import 'animated/background.dart';
-import 'animated/wave.dart';
+import '../shared/widgets.dart';
+import '../shared/animated/background.dart';
+import '../shared/animated/wave.dart';
 
 class ChooseLoginScreen extends StatefulWidget {
   ChooseLoginScreen({Key key, this.auth, this.onSignedIn, this.onSocialSignIn})
@@ -78,6 +78,11 @@ class _ChooseLoginScreen extends State<ChooseLoginScreen> {
                       }
                     } catch (e) {
                       print(e);
+                      setState(() {
+                        budgetModel.isLoading = false;
+                      });
+                      showAlertDialog(
+                          context, "Account already exists", e.message);
                     }
                   }),
               Padding(
@@ -106,35 +111,22 @@ class _ChooseLoginScreen extends State<ChooseLoginScreen> {
                         budgetModel.isLoading = true;
                       });
                       try {
-                        dynamic facebookResult =
-                            await widget.auth.facebookSignIn();
+                        FirebaseUser user = await widget.auth.facebookSignIn();
 
-                        if (facebookResult != null) {
-                          // FB profile exists
-                          if (facebookResult["email"] != null) {
-                            budgetModel.userEmail = facebookResult["email"];
-                            widget.onSocialSignIn();
-                            setState(() {
-                              budgetModel.isLoading = false;
-                            });
-                          }
-                          // Error message
-                          else {
-                            print(facebookResult);
-                            setState(() {
-                              budgetModel.isLoading = false;
-                            });
-                          }
-                        }
-                        // User cancelled FB signin
-                        else {
-                          print("User cancelled");
+                        if (user.email != null && user.email != "") {
+                          budgetModel.userEmail = user.email;
+                          widget.onSocialSignIn();
                           setState(() {
                             budgetModel.isLoading = false;
                           });
                         }
                       } catch (e) {
                         print(e);
+                        setState(() {
+                          budgetModel.isLoading = false;
+                        });
+                        showAlertDialog(
+                            context, "Account already exists", e.message);
                       }
                     }),
               ),
@@ -182,16 +174,19 @@ class _ChooseLoginScreen extends State<ChooseLoginScreen> {
           onBottom(AnimatedWave(
             height: 100,
             speed: 0.5,
+            color: Colors.white.withAlpha(60),
           )),
           onBottom(AnimatedWave(
             height: 120,
             speed: 0.4,
             offset: pi,
+            color: Colors.white.withAlpha(60),
           )),
           onBottom(AnimatedWave(
             height: 220,
             speed: 0.7,
             offset: pi / 2,
+            color: Colors.white.withAlpha(60),
           )),
           _showBody(),
           showCircularProgress(context)

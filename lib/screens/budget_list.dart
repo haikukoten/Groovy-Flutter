@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'dart:ui';
 import "package:intl/intl.dart";
 import 'package:flutter/material.dart';
 import 'package:Groovy/services/auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:Groovy/models/budget.dart';
-import 'shared/shared_widgets.dart';
+import 'shared/widgets.dart';
 import 'package:provider/provider.dart';
+import 'shared/swipe_actions/swipe_widget.dart';
+import 'shared/animated/background.dart';
 
 class BudgetListScreen extends StatefulWidget {
   BudgetListScreen({Key key, this.auth, this.userEmail, this.onSignedOut})
@@ -71,35 +74,114 @@ class _BudgetListScreen extends State<BudgetListScreen> {
 
   Widget _showBudgetList() {
     if (_budgetList.length > 0) {
-      return ListView.builder(
-          shrinkWrap: true,
-          itemCount: _budgetList.length,
-          itemBuilder: (BuildContext context, int index) {
-            String budgetId = _budgetList[index].key;
-            String name = _budgetList[index].name;
-            int spent = _budgetList[index].spent;
-            int setAmount = _budgetList[index].setAmount;
-            return Dismissible(
-              key: Key(budgetId),
-              background: Container(color: Colors.red),
-              onDismissed: (direction) async {
-                // _deleteTodo(todoId, index);
-                print("deleted");
-              },
-              child: ListTile(
-                title: Text(
-                  name,
-                  style: TextStyle(fontSize: 20.0),
-                ),
-                subtitle: Row(
-                  children: <Widget>[
-                    Text(
-                        "${currency.format(spent)} of ${currency.format(setAmount)}"),
-                  ],
-                ),
-              ),
-            );
-          });
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Expanded(
+              child: ListView.builder(
+                  physics: BouncingScrollPhysics(),
+                  shrinkWrap: true,
+                  itemCount: _budgetList.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    String budgetId = _budgetList[index].key;
+                    String name = _budgetList[index].name;
+                    int spent = _budgetList[index].spent;
+                    int setAmount = _budgetList[index].setAmount;
+                    return OnSlide(
+                        items: <ActionItems>[
+                          new ActionItems(
+                              icon: new IconButton(
+                                icon: new Icon(Icons.edit),
+                                onPressed: () {},
+                                color: Colors.white,
+                              ),
+                              onPress: () {
+                                print("edit");
+                              },
+                              backgroundColor: Colors.transparent),
+                          new ActionItems(
+                              icon: new IconButton(
+                                icon: new Icon(Icons.person_add),
+                                onPressed: () {},
+                                color: Colors.white,
+                              ),
+                              onPress: () {},
+                              backgroundColor: Colors.transparent),
+                          new ActionItems(
+                              icon: new IconButton(
+                                icon: new Icon(Icons.delete),
+                                onPressed: () {},
+                                color: Colors.white,
+                              ),
+                              onPress: () {},
+                              backgroundColor: Colors.transparent),
+                        ],
+                        child: Container(
+                          height: 120,
+                          padding: EdgeInsets.fromLTRB(32, 20, 32, 0),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(32.0),
+                          ),
+                          child: new ClipRect(
+                            child: new BackdropFilter(
+                              filter: new ImageFilter.blur(
+                                sigmaX: 15.0,
+                                sigmaY: 15.0,
+                              ),
+                              child: new Container(
+                                  decoration: new BoxDecoration(
+                                      borderRadius: BorderRadius.circular(32.0),
+                                      color: Colors.black.withOpacity(0.5)),
+                                  child: Container(
+                                    child: Card(
+                                        borderOnForeground: false,
+                                        elevation: 0,
+                                        color: Colors.transparent,
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(32.0))),
+                                        child: InkWell(
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(32.0)),
+                                            onTap: () {},
+                                            child: Stack(
+                                              children: <Widget>[
+                                                ListTile(
+                                                  contentPadding:
+                                                      EdgeInsets.only(
+                                                          top: 11.0,
+                                                          left: 30.0),
+                                                  title: Text(
+                                                    name,
+                                                    style: TextStyle(
+                                                        fontSize: 28.0,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        color: Colors.white),
+                                                  ),
+                                                  subtitle: Padding(
+                                                    padding: EdgeInsets.only(
+                                                        top: 5.0),
+                                                    child: Text(
+                                                      "${currency.format(spent)} of ${currency.format(setAmount)}",
+                                                      style: TextStyle(
+                                                          color:
+                                                              Colors.grey[400],
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                          fontSize: 17.0),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ))),
+                                  )),
+                            ),
+                          ),
+                        ));
+                  }))
+        ],
+      );
     } else {
       return Center(
           child: Text(
@@ -127,30 +209,53 @@ class _BudgetListScreen extends State<BudgetListScreen> {
     }
 
     return new Scaffold(
-        appBar: new AppBar(
-          title: new Text('Budgets'),
-          actions: <Widget>[
-            new FlatButton(
-                child: new Text('Logout',
-                    style: new TextStyle(fontSize: 17.0, color: Colors.white)),
-                onPressed: () {
-                  print("Signed out");
-                  setState(() {
-                    budgetModel.isLoading = true;
-                  });
-                  _signOut();
-                })
-          ],
+      drawer: Drawer(
+          child: new FlatButton(
+              child: new Text('Logout',
+                  style: new TextStyle(fontSize: 17.0, color: Colors.black)),
+              onPressed: () {
+                print("Signed out");
+                setState(() {
+                  budgetModel.isLoading = true;
+                });
+                _signOut();
+              })),
+      body: Stack(
+        children: <Widget>[
+          Positioned.fill(
+            child: AnimatedBackground(),
+          ),
+          Column(
+            children: <Widget>[
+              Container(
+                height: 35,
+                child: AppBar(
+                  backgroundColor: Colors.transparent,
+                  iconTheme: IconThemeData(color: Colors.white),
+                  brightness: Brightness.dark,
+                  elevation: 0.0,
+                ),
+              ),
+              Expanded(
+                child: _showBudgetList(),
+              )
+            ],
+          )
+          // showCircularProgress(context)
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.black.withOpacity(0.5),
+        child: Icon(
+          Icons.add,
+          size: 28,
+          color: Colors.white,
         ),
-        body: Stack(
-          children: <Widget>[_showBudgetList(), showCircularProgress(context)],
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            print("Add new budget");
-          },
-          tooltip: 'Add Budget',
-          child: Icon(Icons.add),
-        ));
+        elevation: 0,
+        onPressed: () {
+          print("hi");
+        },
+      ),
+    );
   }
 }
