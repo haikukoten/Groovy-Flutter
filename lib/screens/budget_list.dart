@@ -78,108 +78,109 @@ class _BudgetListScreen extends State<BudgetListScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Expanded(
-              child: ListView.builder(
-                  physics: BouncingScrollPhysics(),
-                  shrinkWrap: true,
-                  itemCount: _budgetList.length,
-                  itemBuilder: (BuildContext context, int index) {
-                    String budgetId = _budgetList[index].key;
-                    String name = _budgetList[index].name;
-                    int spent = _budgetList[index].spent;
-                    int setAmount = _budgetList[index].setAmount;
-                    return OnSlide(
-                        items: <ActionItems>[
-                          new ActionItems(
-                              icon: new IconButton(
-                                icon: new Icon(Icons.edit),
-                                onPressed: () {},
-                                color: Colors.white,
-                              ),
-                              onPress: () {
-                                print("edit");
-                              },
-                              backgroundColor: Colors.transparent),
-                          new ActionItems(
-                              icon: new IconButton(
-                                icon: new Icon(Icons.person_add),
-                                onPressed: () {},
-                                color: Colors.white,
-                              ),
-                              onPress: () {},
-                              backgroundColor: Colors.transparent),
-                          new ActionItems(
-                              icon: new IconButton(
-                                icon: new Icon(Icons.delete),
-                                onPressed: () {},
-                                color: Colors.white,
-                              ),
-                              onPress: () {},
-                              backgroundColor: Colors.transparent),
-                        ],
-                        child: Container(
-                          height: 120,
-                          padding: EdgeInsets.fromLTRB(32, 20, 32, 0),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(32.0),
-                          ),
-                          child: new ClipRect(
-                            child: new BackdropFilter(
-                              filter: new ImageFilter.blur(
-                                sigmaX: 15.0,
-                                sigmaY: 15.0,
-                              ),
-                              child: new Container(
-                                  decoration: new BoxDecoration(
-                                      borderRadius: BorderRadius.circular(32.0),
-                                      color: Colors.black.withOpacity(0.5)),
-                                  child: Container(
-                                    child: Card(
-                                        borderOnForeground: false,
-                                        elevation: 0,
-                                        color: Colors.transparent,
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.all(
-                                                Radius.circular(32.0))),
-                                        child: InkWell(
-                                            borderRadius: BorderRadius.all(
-                                                Radius.circular(32.0)),
-                                            onTap: () {},
-                                            child: Stack(
-                                              children: <Widget>[
-                                                ListTile(
-                                                  contentPadding:
-                                                      EdgeInsets.only(
-                                                          top: 11.0,
-                                                          left: 30.0),
-                                                  title: Text(
-                                                    name,
+              child: MediaQuery.removePadding(
+            context: context,
+            removeTop: true,
+            child: ListView.builder(
+                physics: BouncingScrollPhysics(),
+                shrinkWrap: true,
+                itemCount: _budgetList.length,
+                itemBuilder: (BuildContext context, int index) {
+                  String budgetId = _budgetList[index].key;
+                  String name = _budgetList[index].name;
+                  int spent = _budgetList[index].spent;
+                  int setAmount = _budgetList[index].setAmount;
+                  return OnSlide(
+                      items: <ActionItems>[
+                        new ActionItems(
+                            icon: new IconButton(
+                              icon: new Icon(Icons.edit),
+                              onPressed: () {},
+                              color: Colors.white,
+                            ),
+                            onPress: () {
+                              print("edit");
+                            },
+                            backgroundColor: Colors.transparent),
+                        new ActionItems(
+                            icon: new IconButton(
+                              icon: new Icon(Icons.person_add),
+                              onPressed: () {},
+                              color: Colors.white,
+                            ),
+                            onPress: () {},
+                            backgroundColor: Colors.transparent),
+                        new ActionItems(
+                            icon: new IconButton(
+                              icon: new Icon(Icons.delete),
+                              onPressed: () {},
+                              color: Colors.white,
+                            ),
+                            onPress: () {},
+                            backgroundColor: Colors.transparent),
+                      ],
+                      child: Container(
+                        height: 120,
+                        padding: EdgeInsets.fromLTRB(32, 0, 32, 20),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(32.0),
+                        ),
+                        child: new ClipRect(
+                          child: new BackdropFilter(
+                            filter: new ImageFilter.blur(
+                              sigmaX: 15.0,
+                              sigmaY: 15.0,
+                            ),
+                            child: new Container(
+                                decoration: new BoxDecoration(
+                                    borderRadius: BorderRadius.circular(32.0),
+                                    color: Colors.black.withOpacity(0.5)),
+                                child: Container(
+                                  child: Card(
+                                      borderOnForeground: false,
+                                      elevation: 0,
+                                      color: Colors.transparent,
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.all(
+                                              Radius.circular(32.0))),
+                                      child: InkWell(
+                                          borderRadius: BorderRadius.all(
+                                              Radius.circular(32.0)),
+                                          onTap: () {},
+                                          child: Stack(
+                                            children: <Widget>[
+                                              ListTile(
+                                                contentPadding: EdgeInsets.only(
+                                                    top: 11.0, left: 30.0),
+                                                title: Text(
+                                                  name,
+                                                  style: TextStyle(
+                                                      fontSize: 28.0,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      color: Colors.white),
+                                                ),
+                                                subtitle: Padding(
+                                                  padding:
+                                                      EdgeInsets.only(top: 5.0),
+                                                  child: Text(
+                                                    "${currency.format(spent)} of ${currency.format(setAmount)}",
                                                     style: TextStyle(
-                                                        fontSize: 28.0,
+                                                        color: Colors.grey[400],
                                                         fontWeight:
                                                             FontWeight.w700,
-                                                        color: Colors.white),
-                                                  ),
-                                                  subtitle: Padding(
-                                                    padding: EdgeInsets.only(
-                                                        top: 5.0),
-                                                    child: Text(
-                                                      "${currency.format(spent)} of ${currency.format(setAmount)}",
-                                                      style: TextStyle(
-                                                          color:
-                                                              Colors.grey[400],
-                                                          fontWeight:
-                                                              FontWeight.w700,
-                                                          fontSize: 17.0),
-                                                    ),
+                                                        fontSize: 17.0),
                                                   ),
                                                 ),
-                                              ],
-                                            ))),
-                                  )),
-                            ),
+                                              ),
+                                            ],
+                                          ))),
+                                )),
                           ),
-                        ));
-                  }))
+                        ),
+                      ));
+                }),
+          ))
         ],
       );
     } else {
@@ -214,7 +215,6 @@ class _BudgetListScreen extends State<BudgetListScreen> {
               child: new Text('Logout',
                   style: new TextStyle(fontSize: 17.0, color: Colors.black)),
               onPressed: () {
-                print("Signed out");
                 setState(() {
                   budgetModel.isLoading = true;
                 });
@@ -228,7 +228,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
           Column(
             children: <Widget>[
               Container(
-                height: 35,
+                height: 110,
                 child: AppBar(
                   backgroundColor: Colors.transparent,
                   iconTheme: IconThemeData(color: Colors.white),
