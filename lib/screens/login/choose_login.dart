@@ -11,12 +11,10 @@ import '../shared/animated/background.dart';
 import '../shared/animated/wave.dart';
 
 class ChooseLoginScreen extends StatefulWidget {
-  ChooseLoginScreen({Key key, this.auth, this.onSignedIn, this.onSocialSignIn})
-      : super(key: key);
+  ChooseLoginScreen({Key key, this.auth, this.onSignedIn}) : super(key: key);
 
   final BaseAuth auth;
   final VoidCallback onSignedIn;
-  final VoidCallback onSocialSignIn;
 
   @override
   State<StatefulWidget> createState() => new _ChooseLoginScreen();
@@ -70,19 +68,21 @@ class _ChooseLoginScreen extends State<ChooseLoginScreen> {
                       FirebaseUser user = await widget.auth.googleSignIn();
 
                       if (user.email != null && user.email != "") {
-                        budgetModel.userEmail = user.email;
-                        widget.onSocialSignIn();
+                        widget.onSignedIn();
                         setState(() {
                           budgetModel.isLoading = false;
                         });
                       }
+                      // TODO: Need testing in release mode
                     } catch (e) {
                       print(e);
                       setState(() {
                         budgetModel.isLoading = false;
                       });
-                      showAlertDialog(
-                          context, "Account already exists", e.message);
+                      if (e.message != null) {
+                        showAlertDialog(
+                            context, "Account already exists", e.message);
+                      }
                     }
                   }),
               Padding(
@@ -112,10 +112,15 @@ class _ChooseLoginScreen extends State<ChooseLoginScreen> {
                       });
                       try {
                         FirebaseUser user = await widget.auth.facebookSignIn();
-
-                        if (user.email != null && user.email != "") {
-                          budgetModel.userEmail = user.email;
-                          widget.onSocialSignIn();
+                        if (user != null) {
+                          if (user.email != null && user.email != "") {
+                            widget.onSignedIn();
+                            setState(() {
+                              budgetModel.isLoading = false;
+                            });
+                          }
+                          // User cancelled FB login
+                        } else {
                           setState(() {
                             budgetModel.isLoading = false;
                           });

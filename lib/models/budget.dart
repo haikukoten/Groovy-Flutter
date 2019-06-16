@@ -4,13 +4,15 @@ import 'package:Groovy/services/auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 
 class BudgetModel extends ChangeNotifier {
-  /// Internal, private state of user's budgets.
-  final List<Budget> _budgets = [];
+  List<Budget> _budgets = [];
 
-  /// An unmodifiable view of the user's budgets
-  UnmodifiableListView<Budget> get budgets => UnmodifiableListView(_budgets);
+  List<Budget> get budgets => _budgets;
 
-  /// Adds [budget] to budgets. This is the only way to modify the user's budgets from outside.
+  set budgets(List<Budget> budgets) {
+    _budgets = budgets;
+    notifyListeners();
+  }
+
   void add(Budget budget) {
     _budgets.add(budget);
 
@@ -35,13 +37,6 @@ class BudgetModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  String _userEmail;
-  String get userEmail => _userEmail;
-  set userEmail(String email) {
-    _userEmail = email;
-    notifyListeners();
-  }
-
   bool _isLoading = false;
   bool get isLoading => _isLoading;
   set isLoading(bool isLoading) {
@@ -57,11 +52,11 @@ class Budget {
   final List<dynamic> hiddenFrom;
   final List<dynamic> history;
   final bool isShared;
-  final int left;
+  final num left;
   final String name;
-  final int setAmount;
+  final num setAmount;
   final List<dynamic> sharedWith;
-  final int spent;
+  final num spent;
   final List<dynamic> userDate;
 
   Budget({

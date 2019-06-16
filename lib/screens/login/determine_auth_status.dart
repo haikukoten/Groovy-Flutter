@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:Groovy/screens/login/choose_login.dart';
 import 'package:Groovy/services/auth.dart';
@@ -22,7 +23,7 @@ enum AuthStatus {
 
 class _DetermineAuthStatusScreenState extends State<DetermineAuthStatusScreen> {
   AuthStatus authStatus = AuthStatus.NOT_DETERMINED;
-  String _userEmail = "";
+  FirebaseUser _user;
 
   @override
   void initState() {
@@ -30,7 +31,7 @@ class _DetermineAuthStatusScreenState extends State<DetermineAuthStatusScreen> {
     widget.auth.getCurrentUser().then((user) {
       setState(() {
         if (user != null) {
-          _userEmail = user?.email;
+          _user = user;
         }
         authStatus = user?.email == null
             ? AuthStatus.NOT_LOGGED_IN
@@ -42,7 +43,7 @@ class _DetermineAuthStatusScreenState extends State<DetermineAuthStatusScreen> {
   void _onLoggedIn() {
     widget.auth.getCurrentUser().then((user) {
       setState(() {
-        _userEmail = user.email;
+        _user = user;
       });
     });
     setState(() {
@@ -50,19 +51,19 @@ class _DetermineAuthStatusScreenState extends State<DetermineAuthStatusScreen> {
     });
   }
 
-  void _onSocialLogin() {
-    var budgetModel = Provider.of<BudgetModel>(context);
-    setState(() {
-      _userEmail = budgetModel.userEmail;
-      authStatus = AuthStatus.LOGGED_IN;
-      print(_userEmail);
-    });
-  }
+  // void _onSocialLogin() {
+  //   var budgetModel = Provider.of<BudgetModel>(context);
+  //   setState(() {
+  //     _userEmail = budgetModel.userEmail;
+  //     authStatus = AuthStatus.LOGGED_IN;
+  //     print(_userEmail);
+  //   });
+  // }
 
   void _onSignedOut() {
     setState(() {
       authStatus = AuthStatus.NOT_LOGGED_IN;
-      _userEmail = "";
+      _user = null;
     });
   }
 
@@ -85,13 +86,12 @@ class _DetermineAuthStatusScreenState extends State<DetermineAuthStatusScreen> {
         return new ChooseLoginScreen(
           auth: widget.auth,
           onSignedIn: _onLoggedIn,
-          onSocialSignIn: _onSocialLogin,
         );
         break;
       case AuthStatus.LOGGED_IN:
-        if (_userEmail.length > 0 && _userEmail != null) {
+        if (_user != null) {
           return new BudgetListScreen(
-            userEmail: _userEmail,
+            user: _user,
             auth: widget.auth,
             onSignedOut: _onSignedOut,
           );

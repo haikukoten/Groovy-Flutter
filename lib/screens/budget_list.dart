@@ -1,22 +1,22 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:firebase_auth/firebase_auth.dart';
 import "package:intl/intl.dart";
 import 'package:flutter/material.dart';
 import 'package:Groovy/services/auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:Groovy/models/budget.dart';
-import 'shared/widgets.dart';
 import 'package:provider/provider.dart';
 import 'shared/swipe_actions/swipe_widget.dart';
 import 'shared/animated/background.dart';
 
 class BudgetListScreen extends StatefulWidget {
-  BudgetListScreen({Key key, this.auth, this.userEmail, this.onSignedOut})
+  BudgetListScreen({Key key, this.auth, this.user, this.onSignedOut})
       : super(key: key);
 
   final BaseAuth auth;
   final VoidCallback onSignedOut;
-  final String userEmail;
+  final FirebaseUser user;
 
   @override
   State<StatefulWidget> createState() => new _BudgetListScreen();
@@ -36,12 +36,11 @@ class _BudgetListScreen extends State<BudgetListScreen> {
   void initState() {
     super.initState();
 
-    _budgetList = new List();
     _budgetQuery = _database
         .reference()
         .child("budgets")
         .orderByChild("createdBy")
-        .equalTo(widget.userEmail);
+        .equalTo(widget.user.email);
     _onBudgetAddedSubscription =
         _budgetQuery.onChildAdded.listen(_onEntryAdded);
     _onBudgetChangedSubscription =
@@ -72,6 +71,34 @@ class _BudgetListScreen extends State<BudgetListScreen> {
     });
   }
 
+  num totalAmountSpent() {
+    num totalSpent = 0;
+    for (int i = 0; i < _budgetList.length; i++) {
+      totalSpent += _budgetList[i].spent;
+    }
+    return totalSpent;
+  }
+
+  num totalAmountBudgeted() {
+    num totalBudgeted = 0;
+    if (_budgetList.length > 0) {
+      for (int i = 0; i < _budgetList.length; i++) {
+        totalBudgeted += _budgetList[i].setAmount;
+      }
+    }
+    return totalBudgeted;
+  }
+
+  num totalAmountLeft() {
+    num totalLeft = 0;
+    if (_budgetList.length > 0) {
+      for (int i = 0; i < _budgetList.length; i++) {
+        totalLeft += _budgetList[i].left;
+      }
+    }
+    return totalLeft;
+  }
+
   Widget _showBudgetList() {
     if (_budgetList.length > 0) {
       return Column(
@@ -88,8 +115,8 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                 itemBuilder: (BuildContext context, int index) {
                   String budgetId = _budgetList[index].key;
                   String name = _budgetList[index].name;
-                  int spent = _budgetList[index].spent;
-                  int setAmount = _budgetList[index].setAmount;
+                  num spent = _budgetList[index].spent;
+                  num setAmount = _budgetList[index].setAmount;
                   return OnSlide(
                       items: <ActionItems>[
                         new ActionItems(
@@ -211,15 +238,200 @@ class _BudgetListScreen extends State<BudgetListScreen> {
 
     return new Scaffold(
       drawer: Drawer(
-          child: new FlatButton(
-              child: new Text('Logout',
-                  style: new TextStyle(fontSize: 17.0, color: Colors.black)),
-              onPressed: () {
-                setState(() {
-                  budgetModel.isLoading = true;
-                });
-                _signOut();
-              })),
+          child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          UserAccountsDrawerHeader(
+            decoration: BoxDecoration(color: Colors.black),
+            accountEmail: widget.user.email != null
+                ? Text(widget.user.email)
+                : SizedBox.shrink(),
+            accountName: widget.user.displayName != null
+                ? Text(
+                    widget.user.displayName,
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  )
+                : SizedBox.shrink(),
+            currentAccountPicture: CircleAvatar(
+                backgroundColor: Colors.black,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(45.0),
+                  child: widget.user.photoUrl != null
+                      ? Image.network(
+                          widget.user.photoUrl,
+                          fit: BoxFit.cover,
+                        )
+                      : CircleAvatar(
+                          backgroundColor: Colors.grey[400],
+                          radius: 29,
+                          child: Center(
+                            child: Text(
+                              widget.user.email.substring(0, 1).toLowerCase(),
+                              style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 40,
+                                  fontWeight: FontWeight.w400),
+                            ),
+                          ),
+                        ),
+                )),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 5.0, bottom: 5.0, left: 14.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  "budgets",
+                  style: TextStyle(
+                      fontSize: 22.0,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 5.0),
+                  child: Text(
+                    "${_budgetList.length.toString()}",
+                    style: TextStyle(
+                        fontSize: 22.0,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.grey[500]),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Divider(
+            color: Colors.grey[500],
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 5.0, bottom: 5.0, left: 14.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  "total spent",
+                  style: TextStyle(
+                      fontSize: 22.0,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 5.0),
+                  child: Text(
+                    "${currency.format(totalAmountSpent())}",
+                    style: TextStyle(
+                        fontSize: 22.0,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.grey[500]),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Divider(
+            color: Colors.grey[500],
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 5.0, bottom: 5.0, left: 14.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  "total left",
+                  style: TextStyle(
+                      fontSize: 22.0,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 5.0),
+                  child: Text(
+                    "${currency.format(totalAmountLeft())}",
+                    style: TextStyle(
+                        fontSize: 22.0,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.grey[500]),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Divider(
+            color: Colors.grey[500],
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 5.0, bottom: 5.0, left: 14.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  "theme",
+                  style: TextStyle(
+                      fontSize: 22.0,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Row(
+                    children: <Widget>[
+                      FloatingActionButton(
+                        tooltip: "Light",
+                        mini: true,
+                        elevation: 0.0,
+                        backgroundColor: Colors.grey[400],
+                        child: Icon(Icons.wb_sunny),
+                        onPressed: () {
+                          print("Light");
+                        },
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 5.0),
+                        child: FloatingActionButton(
+                          tooltip: "Dark",
+                          mini: true,
+                          elevation: 0.0,
+                          backgroundColor: Colors.black87,
+                          child: Icon(Icons.brightness_2),
+                          onPressed: () {
+                            print("Dark");
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              ],
+            ),
+          ),
+          Expanded(
+            child: Align(
+              alignment: Alignment.bottomLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 14.0, bottom: 16),
+                child: FloatingActionButton(
+                  tooltip: "Signout",
+                  elevation: 0,
+                  backgroundColor: Colors.grey[300],
+                  foregroundColor: Colors.black87,
+                  child: RotationTransition(
+                      turns: new AlwaysStoppedAnimation(180 / 360),
+                      child: Icon(
+                        Icons.exit_to_app,
+                      )),
+                  onPressed: () {
+                    setState(() {
+                      budgetModel.isLoading = true;
+                    });
+                    _signOut();
+                  },
+                ),
+              ),
+            ),
+          ),
+        ],
+      )),
       body: Stack(
         children: <Widget>[
           Positioned.fill(
