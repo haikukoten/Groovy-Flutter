@@ -1,12 +1,13 @@
 import 'dart:ui';
 import 'dart:math';
+import 'package:Groovy/providers/auth_provider.dart';
+import 'package:Groovy/providers/ui_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:Groovy/services/auth.dart';
 import 'package:provider/provider.dart';
-import 'package:Groovy/models/budget.dart';
-import '../shared/widgets.dart';
+import '../shared/utilities.dart';
 import '../shared/animated/background.dart';
 import '../shared/animated/wave.dart';
 
@@ -28,10 +29,47 @@ class _ChooseLoginScreen extends State<ChooseLoginScreen> {
       DeviceOrientation.portraitDown,
     ]);
 
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark.copyWith(
-        statusBarColor: Colors.white, statusBarBrightness: Brightness.dark));
+    var uiProvider = Provider.of<UIProvider>(context);
 
-    var budgetModel = Provider.of<BudgetModel>(context);
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark.copyWith(
+        statusBarColor: Colors.black.withOpacity(0.5),
+        statusBarBrightness: Brightness.dark));
+
+    Future<void> _showDialog(String title, String message,
+        [Function func]) async {
+      return showDialog<void>(
+        context: context,
+        barrierDismissible: true,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text(title),
+            content: SingleChildScrollView(
+              child: ListBody(
+                children: <Widget>[
+                  Text(message),
+                ],
+              ),
+            ),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(32.0))),
+            actions: <Widget>[
+              FlatButton(
+                child: Text(
+                  'OK',
+                  style: TextStyle(color: Colors.black),
+                ),
+                onPressed: () {
+                  if (func != null) {
+                    func();
+                  }
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
 
     Widget _showBody() {
       return Container(
@@ -62,7 +100,7 @@ class _ChooseLoginScreen extends State<ChooseLoginScreen> {
                   ),
                   onPressed: () async {
                     setState(() {
-                      budgetModel.isLoading = true;
+                      uiProvider.isLoading = true;
                     });
                     try {
                       FirebaseUser user = await widget.auth.googleSignIn();
@@ -70,18 +108,17 @@ class _ChooseLoginScreen extends State<ChooseLoginScreen> {
                       if (user.email != null && user.email != "") {
                         widget.onSignedIn();
                         setState(() {
-                          budgetModel.isLoading = false;
+                          uiProvider.isLoading = false;
                         });
                       }
                       // TODO: Need testing in release mode
                     } catch (e) {
                       print(e);
                       setState(() {
-                        budgetModel.isLoading = false;
+                        uiProvider.isLoading = false;
                       });
                       if (e.message != null) {
-                        showAlertDialog(
-                            context, "Account already exists", e.message);
+                        _showDialog("Account already exists", e.message);
                       }
                     }
                   }),
@@ -108,7 +145,7 @@ class _ChooseLoginScreen extends State<ChooseLoginScreen> {
                     ),
                     onPressed: () async {
                       setState(() {
-                        budgetModel.isLoading = true;
+                        uiProvider.isLoading = true;
                       });
                       try {
                         FirebaseUser user = await widget.auth.facebookSignIn();
@@ -116,22 +153,21 @@ class _ChooseLoginScreen extends State<ChooseLoginScreen> {
                           if (user.email != null && user.email != "") {
                             widget.onSignedIn();
                             setState(() {
-                              budgetModel.isLoading = false;
+                              uiProvider.isLoading = false;
                             });
                           }
                           // User cancelled FB login
                         } else {
                           setState(() {
-                            budgetModel.isLoading = false;
+                            uiProvider.isLoading = false;
                           });
                         }
                       } catch (e) {
                         print(e);
                         setState(() {
-                          budgetModel.isLoading = false;
+                          uiProvider.isLoading = false;
                         });
-                        showAlertDialog(
-                            context, "Account already exists", e.message);
+                        _showDialog("Account already exists", e.message);
                       }
                     }),
               ),
@@ -158,9 +194,9 @@ class _ChooseLoginScreen extends State<ChooseLoginScreen> {
                     ),
                     onPressed: () {
                       // Set auth and onSignedIn for Email Login to use
-                      var budgetModel = Provider.of<BudgetModel>(context);
-                      budgetModel.auth = widget.auth;
-                      budgetModel.onSignedIn = widget.onSignedIn;
+                      var authProvider = Provider.of<AuthProvider>(context);
+                      authProvider.auth = widget.auth;
+                      authProvider.onSignedIn = widget.onSignedIn;
                       Navigator.pushNamed(context, '/emailLogin');
                     }),
               ),

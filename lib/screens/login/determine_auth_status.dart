@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:Groovy/screens/login/choose_login.dart';
 import 'package:Groovy/services/auth.dart';
 import 'package:Groovy/screens/budget_list.dart';
-import 'package:provider/provider.dart';
-import 'package:Groovy/models/budget.dart';
 
 class DetermineAuthStatusScreen extends StatefulWidget {
   DetermineAuthStatusScreen({this.auth});

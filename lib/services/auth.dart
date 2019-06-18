@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'package:firebase_database/firebase_database.dart';
+
+import '../models/budget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_login/flutter_facebook_login.dart';
@@ -7,6 +10,9 @@ import 'package:flutter_facebook_login/flutter_facebook_login.dart';
 // Test that canceling Google login works in release mode
 
 abstract class BaseAuth {
+  Future<void> createBudget(
+      FirebaseDatabase database, FirebaseUser user, String name, String amount);
+
   Future<FirebaseUser> googleSignIn();
 
   Future<dynamic> facebookSignIn();
@@ -32,6 +38,24 @@ class Auth implements BaseAuth {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FacebookLogin _facebookLogin = FacebookLogin();
+
+  Future<void> createBudget(FirebaseDatabase database, FirebaseUser user,
+      String name, String amount) {
+    if (name.length > 0) {
+      Budget budget = new Budget(
+          createdBy: user.email,
+          hiddenFrom: [],
+          history: [],
+          isShared: false,
+          left: num.parse(amount),
+          name: name,
+          setAmount: num.parse(amount),
+          sharedWith: [],
+          spent: 0,
+          userDate: []);
+      database.reference().child("budgets").push().set(budget.toJson());
+    }
+  }
 
   Future<FirebaseUser> googleSignIn() async {
     GoogleSignInAccount googleUser = await _googleSignIn.signIn();
@@ -109,6 +133,13 @@ class Auth implements BaseAuth {
   }
 
   Future<void> signOut() async {
+    if (await _googleSignIn.isSignedIn()) {
+      await _googleSignIn.signOut();
+    }
+
+    if (await _facebookLogin.isLoggedIn) {
+      await _facebookLogin.logOut();
+    }
     return _firebaseAuth.signOut();
   }
 

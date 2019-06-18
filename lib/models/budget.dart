@@ -1,6 +1,4 @@
-import 'dart:collection';
 import 'package:flutter/foundation.dart';
-import 'package:Groovy/services/auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 
 class BudgetModel extends ChangeNotifier {
@@ -20,47 +18,23 @@ class BudgetModel extends ChangeNotifier {
     // depend on it.
     notifyListeners();
   }
-
-  // EmailLogin requires these
-  // ChooseLogin will set them
-  BaseAuth _auth;
-  BaseAuth get auth => _auth;
-  set auth(BaseAuth auth) {
-    _auth = auth;
-    notifyListeners();
-  }
-
-  VoidCallback _onSignedIn;
-  VoidCallback get onSignedIn => _onSignedIn;
-  set onSignedIn(VoidCallback onSignedIn) {
-    _onSignedIn = onSignedIn;
-    notifyListeners();
-  }
-
-  bool _isLoading = false;
-  bool get isLoading => _isLoading;
-  set isLoading(bool isLoading) {
-    _isLoading = isLoading;
-    notifyListeners();
-  }
 }
 
 @immutable
 class Budget {
-  final String key;
-  final String createdBy;
-  final List<dynamic> hiddenFrom;
-  final List<dynamic> history;
-  final bool isShared;
-  final num left;
-  final String name;
-  final num setAmount;
-  final List<dynamic> sharedWith;
-  final num spent;
-  final List<dynamic> userDate;
+  String key;
+  String createdBy;
+  List<dynamic> hiddenFrom;
+  List<dynamic> history;
+  bool isShared;
+  num left;
+  String name;
+  num setAmount;
+  List<dynamic> sharedWith;
+  num spent;
+  List<dynamic> userDate;
 
   Budget({
-    this.key,
     this.createdBy,
     this.hiddenFrom,
     this.history,

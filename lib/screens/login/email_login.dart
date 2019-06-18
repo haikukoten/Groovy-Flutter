@@ -1,9 +1,10 @@
 import 'dart:ui';
+import 'package:Groovy/providers/auth_provider.dart';
+import 'package:Groovy/providers/ui_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:Groovy/models/budget.dart';
-import '../shared/widgets.dart';
+import '../shared/utilities.dart';
 
 class EmailLoginScreen extends StatefulWidget {
   EmailLoginScreen({Key key}) : super(key: key);
@@ -36,12 +37,8 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
   @override
   Widget build(BuildContext context) {
     // Access to auth and onSignedIn from ChooseLogin
-    var budgetModel = Provider.of<BudgetModel>(context);
-
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
+    var authProvider = Provider.of<AuthProvider>(context);
+    var uiProvider = Provider.of<UIProvider>(context);
 
     void _changeFormToSignUp() {
       _errorMessage = "";
@@ -57,8 +54,8 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
       });
     }
 
-    Future<void> _showInputDialog(String title, String message,
-        [Widget input, Function func]) async {
+    Future<void> _showDialog(String title, String message,
+        [Function func]) async {
       return showDialog<void>(
         context: context,
         barrierDismissible: true,
@@ -69,7 +66,6 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
               child: ListBody(
                 children: <Widget>[
                   Text(message),
-                  input != null ? input : null,
                 ],
               ),
             ),
@@ -78,46 +74,14 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
             actions: <Widget>[
               FlatButton(
                 child: Text(
-                  'Cancel',
-                  style: TextStyle(color: Colors.grey),
+                  'OK',
+                  style: TextStyle(color: Colors.black),
                 ),
                 onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-              FlatButton(
-                child: Text(
-                  'Send',
-                  style: TextStyle(color: Theme.of(context).primaryColor),
-                ),
-                onPressed: () async {
-                  Navigator.of(context).pop();
-                  setState(() {
-                    budgetModel.isLoading = true;
-                  });
-
-                  if (title == "Reset Password") {
-                    try {
-                      if (passwordRecoveryEmailController.text != "" &&
-                          passwordRecoveryEmailController.text != null) {
-                        setState(() {
-                          budgetModel.isLoading = false;
-                        });
-                        await func(passwordRecoveryEmailController.text);
-                        showAlertDialog(context, "Success",
-                            "Check your email to reset your password");
-                      } else {
-                        setState(() {
-                          budgetModel.isLoading = false;
-                        });
-                      }
-                    } catch (e) {
-                      setState(() {
-                        budgetModel.isLoading = false;
-                      });
-                      showAlertDialog(context, "Try again", e.message);
-                    }
+                  if (func != null) {
+                    func();
                   }
+                  Navigator.of(context).pop();
                 },
               ),
             ],
@@ -136,9 +100,45 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
         onPressed: _formMode == FormMode.LOGIN
             ? () {
                 passwordRecoveryEmailController.text = emailTextController.text;
-                _showInputDialog(
-                    "Reset Password",
+                showInputDialog(
+                    context,
+                    Colors.white,
+                    Text("Reset Password"),
                     "Get instructions sent to this email that explain how to reset your password",
+                    FlatButton(
+                      child: Text(
+                        'Send',
+                        style: TextStyle(color: Theme.of(context).primaryColor),
+                      ),
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                        setState(() {
+                          uiProvider.isLoading = true;
+                        });
+
+                        try {
+                          if (passwordRecoveryEmailController.text != "" &&
+                              passwordRecoveryEmailController.text != null) {
+                            setState(() {
+                              uiProvider.isLoading = false;
+                            });
+                            await authProvider.auth.sendPasswordRecoveryEmail(
+                                passwordRecoveryEmailController.text);
+                            _showDialog("Success",
+                                "Check your email to reset your password");
+                          } else {
+                            setState(() {
+                              uiProvider.isLoading = false;
+                            });
+                          }
+                        } catch (e) {
+                          setState(() {
+                            uiProvider.isLoading = false;
+                          });
+                          _showDialog("Try again", e.message);
+                        }
+                      },
+                    ),
                     Container(
                       padding: EdgeInsets.only(top: 7.0),
                       child: TextField(
@@ -147,8 +147,7 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
                         cursorColor: Colors.black87,
                         keyboardAppearance: Brightness.dark,
                       ),
-                    ),
-                    budgetModel.auth.sendPasswordRecoveryEmail);
+                    ));
               }
             : null,
       );
@@ -165,8 +164,7 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
     }
 
     void _showVerifyEmailSentDialog() {
-      showAlertDialog(
-          context,
+      _showDialog(
           "Verify your account",
           "Link to verify account has been sent to your email",
           _changeFormToLogin);
@@ -176,37 +174,37 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
     void _validateAndSubmit() async {
       setState(() {
         _errorMessage = "";
-        budgetModel.isLoading = true;
+        uiProvider.isLoading = true;
       });
       if (_validateAndSave()) {
         String userId = "";
         try {
           if (_formMode == FormMode.LOGIN) {
-            userId = await budgetModel.auth.signIn(_email, _password);
+            userId = await authProvider.auth.signIn(_email, _password);
             print('Signed in: $userId');
             Navigator.of(context)
                 .pushNamedAndRemoveUntil("/", (Route<dynamic> route) => false);
           } else {
-            userId = await budgetModel.auth.signUp(_email, _password);
-            budgetModel.auth.sendEmailVerification();
+            userId = await authProvider.auth.signUp(_email, _password);
+            authProvider.auth.sendEmailVerification();
             _showVerifyEmailSentDialog();
             print('Signed up user: $userId');
           }
           setState(() {
-            budgetModel.isLoading = false;
+            uiProvider.isLoading = false;
           });
 
           if (userId != null &&
               userId.length > 0 &&
               _formMode == FormMode.LOGIN) {
-            budgetModel.onSignedIn();
+            authProvider.onSignedIn();
           }
         } catch (e) {
           print('Error: $e');
           setState(() {
-            budgetModel.isLoading = false;
+            uiProvider.isLoading = false;
             _errorMessage = e.message;
-            showAlertDialog(context, "Yo", _errorMessage);
+            _showDialog("Yo", _errorMessage);
           });
         }
       }
@@ -231,7 +229,7 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
           validator: (value) {
             if (value.isEmpty) {
               setState(() {
-                budgetModel.isLoading = false;
+                uiProvider.isLoading = false;
               });
               return 'Email can\'t be empty';
             }
@@ -266,7 +264,7 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
           validator: (value) {
             if (value.isEmpty) {
               setState(() {
-                budgetModel.isLoading = false;
+                uiProvider.isLoading = false;
               });
               return 'Password can\'t be empty';
             }
