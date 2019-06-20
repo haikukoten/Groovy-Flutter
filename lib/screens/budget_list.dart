@@ -168,6 +168,37 @@ class _BudgetListScreen extends State<BudgetListScreen> {
       }
     }
 
+    void _deleteBudget(Budget budget) async {
+      showAlertDialog(context, "Delete '${budget.name}'",
+          "Are you sure you want to delete this budget?", [
+        FlatButton(
+          child: Text(
+            'Cancel',
+            style: TextStyle(color: Colors.grey),
+          ),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
+        FlatButton(
+          child: Text(
+            'Delete',
+            style: TextStyle(
+                color: uiProvider.isLightTheme ? Colors.black : Colors.white),
+          ),
+          onPressed: () {
+            widget.auth.deleteBudget(_database, budget);
+            print("Delete ${budget.key} successful");
+            int budgetIndex = _budgetList.indexOf(budget);
+            setState(() {
+              _budgetList.removeAt(budgetIndex);
+            });
+            Navigator.of(context).pop();
+          },
+        )
+      ]);
+    }
+
     Widget _showBudgetList() {
       if (_budgetList.length > 0) {
         return Column(
@@ -204,7 +235,9 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                 onPressed: () {},
                                 color: Colors.white,
                               ),
-                              onPress: () {},
+                              onPress: () {
+                                print("share");
+                              },
                               backgroundColor: Colors.transparent),
                           new ActionItems(
                               icon: new IconButton(
@@ -212,7 +245,10 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                 onPressed: () {},
                                 color: Colors.white,
                               ),
-                              onPress: () {},
+                              onPress: () {
+                                _deleteBudget(_budgetList[index]);
+                                print("delete");
+                              },
                               backgroundColor: Colors.transparent),
                         ],
                         child: Container(
@@ -566,10 +602,34 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                             Icons.exit_to_app,
                           )),
                       onPressed: () {
-                        setState(() {
-                          uiProvider.isLoading = true;
-                        });
-                        _signOut();
+                        showAlertDialog(context, "Signout",
+                            "Are you sure you want to signout?", [
+                          FlatButton(
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                          ),
+                          FlatButton(
+                            child: Text(
+                              'Signout',
+                              style: TextStyle(
+                                  color: uiProvider.isLightTheme
+                                      ? Colors.black
+                                      : Colors.white),
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                uiProvider.isLoading = true;
+                              });
+                              _signOut();
+                              Navigator.of(context).pop();
+                            },
+                          )
+                        ]);
                       },
                     ),
                   ),
@@ -590,6 +650,8 @@ class _BudgetListScreen extends State<BudgetListScreen> {
           ),
           elevation: 0,
           onPressed: () {
+            nameTextController.text = "";
+            amountTextController.text = "";
             showInputDialog(
                 context,
                 uiProvider.isLightTheme ? Colors.white : Colors.black,
@@ -634,6 +696,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                         autofocus: true,
                         controller: nameTextController,
                         decoration: InputDecoration(
+                            errorStyle: TextStyle(color: Colors.red[300]),
                             hintText: 'Name',
                             hintStyle: TextStyle(color: Colors.grey),
                             focusedBorder: UnderlineInputBorder(
@@ -669,6 +732,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                             TextInputType.numberWithOptions(decimal: true),
                         controller: amountTextController,
                         decoration: InputDecoration(
+                            errorStyle: TextStyle(color: Colors.red[300]),
                             hintText: '\$',
                             hintStyle: TextStyle(color: Colors.grey),
                             focusedBorder: UnderlineInputBorder(

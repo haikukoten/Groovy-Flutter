@@ -13,6 +13,10 @@ abstract class BaseAuth {
   Future<void> createBudget(
       FirebaseDatabase database, FirebaseUser user, String name, String amount);
 
+  Future<void> updateBudget(FirebaseDatabase database, Budget budget);
+
+  Future<void> deleteBudget(FirebaseDatabase database, Budget budget);
+
   Future<FirebaseUser> googleSignIn();
 
   Future<dynamic> facebookSignIn();
@@ -40,7 +44,7 @@ class Auth implements BaseAuth {
   final FacebookLogin _facebookLogin = FacebookLogin();
 
   Future<void> createBudget(FirebaseDatabase database, FirebaseUser user,
-      String name, String amount) {
+      String name, String amount) async {
     if (name.length > 0) {
       Budget budget = new Budget(
           createdBy: user.email,
@@ -53,8 +57,30 @@ class Auth implements BaseAuth {
           sharedWith: [],
           spent: 0,
           userDate: []);
-      database.reference().child("budgets").push().set(budget.toJson());
+      return await database
+          .reference()
+          .child("budgets")
+          .push()
+          .set(budget.toJson());
     }
+  }
+
+  Future<void> updateBudget(FirebaseDatabase database, Budget budget) async {
+    if (budget != null) {
+      return await database
+          .reference()
+          .child("budgets")
+          .child(budget.key)
+          .set(budget.toJson());
+    }
+  }
+
+  Future<void> deleteBudget(FirebaseDatabase database, Budget budget) async {
+    return await database
+        .reference()
+        .child("budgets")
+        .child(budget.key)
+        .remove();
   }
 
   Future<FirebaseUser> googleSignIn() async {

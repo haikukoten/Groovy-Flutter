@@ -54,42 +54,6 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
       });
     }
 
-    Future<void> _showDialog(String title, String message,
-        [Function func]) async {
-      return showDialog<void>(
-        context: context,
-        barrierDismissible: true,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text(title),
-            content: SingleChildScrollView(
-              child: ListBody(
-                children: <Widget>[
-                  Text(message),
-                ],
-              ),
-            ),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(32.0))),
-            actions: <Widget>[
-              FlatButton(
-                child: Text(
-                  'OK',
-                  style: TextStyle(color: Colors.black),
-                ),
-                onPressed: () {
-                  if (func != null) {
-                    func();
-                  }
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          );
-        },
-      );
-    }
-
     Widget _showPasswordRecoveryButton() {
       return FlatButton(
         padding: EdgeInsets.only(top: 1.0),
@@ -124,8 +88,18 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
                             });
                             await authProvider.auth.sendPasswordRecoveryEmail(
                                 passwordRecoveryEmailController.text);
-                            _showDialog("Success",
-                                "Check your email to reset your password");
+                            showAlertDialog(context, "Success",
+                                "Check your email to reset your password", [
+                              FlatButton(
+                                child: Text(
+                                  'OK',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                              )
+                            ]);
                           } else {
                             setState(() {
                               uiProvider.isLoading = false;
@@ -135,7 +109,17 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
                           setState(() {
                             uiProvider.isLoading = false;
                           });
-                          _showDialog("Try again", e.message);
+                          showAlertDialog(context, "Try again", e.message, [
+                            FlatButton(
+                              child: Text(
+                                'OK',
+                                style: TextStyle(color: Colors.black),
+                              ),
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                              },
+                            )
+                          ]);
                         }
                       },
                     ),
@@ -164,10 +148,19 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
     }
 
     void _showVerifyEmailSentDialog() {
-      _showDialog(
-          "Verify your account",
-          "Link to verify account has been sent to your email",
-          _changeFormToLogin);
+      showAlertDialog(context, "Verify your account",
+          "Link to verify account has been sent to your email", [
+        FlatButton(
+          child: Text(
+            'OK',
+            style: TextStyle(color: Colors.black),
+          ),
+          onPressed: () {
+            _changeFormToLogin();
+            Navigator.of(context).pop();
+          },
+        )
+      ]);
     }
 
     // Perform login or signup
@@ -204,7 +197,17 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
           setState(() {
             uiProvider.isLoading = false;
             _errorMessage = e.message;
-            _showDialog("Yo", _errorMessage);
+            showAlertDialog(context, "Yo", _errorMessage, [
+              FlatButton(
+                child: Text(
+                  'OK',
+                  style: TextStyle(color: Colors.black),
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              )
+            ]);
           });
         }
       }

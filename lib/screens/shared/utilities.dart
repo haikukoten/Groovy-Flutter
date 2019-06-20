@@ -33,6 +33,41 @@ Widget onBottom(Widget child) {
   );
 }
 
+Future<void> showAlertDialog(BuildContext context, String title, String message,
+    List<Widget> actions) async {
+  var uiProvider = Provider.of<UIProvider>(context);
+  return showDialog<void>(
+    context: context,
+    barrierDismissible: true,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        backgroundColor: uiProvider.isLightTheme ? Colors.white : Colors.black,
+        title: Text(
+          title,
+          style: TextStyle(
+              color: uiProvider.isLightTheme ? Colors.black : Colors.white),
+        ),
+        content: SingleChildScrollView(
+          child: ListBody(
+            children: <Widget>[
+              Text(
+                message,
+                style: TextStyle(
+                    color: uiProvider.isLightTheme
+                        ? Colors.grey[800]
+                        : Colors.grey[200]),
+              ),
+            ],
+          ),
+        ),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(32.0))),
+        actions: actions,
+      );
+    },
+  );
+}
+
 Future<void> showInputDialog(BuildContext context, Color color, Text title,
     String message, FlatButton submit,
     [Widget inputs, Function func]) async {

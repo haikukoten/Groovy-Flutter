@@ -20,7 +20,6 @@ class BudgetModel extends ChangeNotifier {
   }
 }
 
-@immutable
 class Budget {
   String key;
   String createdBy;
