@@ -1,24 +1,4 @@
-import 'package:flutter/foundation.dart';
 import 'package:firebase_database/firebase_database.dart';
-
-class BudgetModel extends ChangeNotifier {
-  List<Budget> _budgets = [];
-
-  List<Budget> get budgets => _budgets;
-
-  set budgets(List<Budget> budgets) {
-    _budgets = budgets;
-    notifyListeners();
-  }
-
-  void add(Budget budget) {
-    _budgets.add(budget);
-
-    // This line tells [Model] that it should rebuild the widgets that
-    // depend on it.
-    notifyListeners();
-  }
-}
 
 class Budget {
   String key;

@@ -40,30 +40,36 @@ Future<void> showAlertDialog(BuildContext context, String title, String message,
     context: context,
     barrierDismissible: true,
     builder: (BuildContext context) {
-      return AlertDialog(
-        backgroundColor: uiProvider.isLightTheme ? Colors.white : Colors.black,
-        title: Text(
-          title,
-          style: TextStyle(
-              color: uiProvider.isLightTheme ? Colors.black : Colors.white),
-        ),
-        content: SingleChildScrollView(
-          child: ListBody(
-            children: <Widget>[
-              Text(
-                message,
-                style: TextStyle(
-                    color: uiProvider.isLightTheme
-                        ? Colors.grey[800]
-                        : Colors.grey[200]),
-              ),
-            ],
+      return BackdropFilter(
+          filter: ImageFilter.blur(
+            sigmaX: 5.0,
+            sigmaY: 5.0,
           ),
-        ),
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(32.0))),
-        actions: actions,
-      );
+          child: AlertDialog(
+            backgroundColor:
+                uiProvider.isLightTheme ? Colors.white : Colors.black,
+            title: Text(
+              title,
+              style: TextStyle(
+                  color: uiProvider.isLightTheme ? Colors.black : Colors.white),
+            ),
+            content: SingleChildScrollView(
+              child: ListBody(
+                children: <Widget>[
+                  Text(
+                    message,
+                    style: TextStyle(
+                        color: uiProvider.isLightTheme
+                            ? Colors.grey[800]
+                            : Colors.grey[200]),
+                  ),
+                ],
+              ),
+            ),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(32.0))),
+            actions: actions,
+          ));
     },
   );
 }
@@ -76,7 +82,7 @@ Future<void> showInputDialog(BuildContext context, Color color, Text title,
     barrierDismissible: true,
     builder: (BuildContext context) {
       return BackdropFilter(
-        filter: new ImageFilter.blur(
+        filter: ImageFilter.blur(
           sigmaX: 5.0,
           sigmaY: 5.0,
         ),
@@ -109,6 +115,33 @@ Future<void> showInputDialog(BuildContext context, Color color, Text title,
       );
     },
   );
+}
+
+void modalBottomSheetMenu(
+    BuildContext context, UIProvider uiProvider, Widget body) {
+  showModalBottomSheet(
+      context: context,
+      builder: (builder) {
+        return BackdropFilter(
+            filter: ImageFilter.blur(
+              sigmaX: 5.0,
+              sigmaY: 5.0,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(15.0, 0, 15.0, 15.0),
+              child: Container(
+                height: 265.0,
+                color: Colors.transparent,
+                child: Container(
+                    decoration: BoxDecoration(
+                        color: uiProvider.isLightTheme
+                            ? Colors.white
+                            : Colors.black,
+                        borderRadius: BorderRadius.circular(32.0)),
+                    child: body),
+              ),
+            ));
+      });
 }
 
 class DecimalTextInputFormatter extends TextInputFormatter {

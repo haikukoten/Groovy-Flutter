@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:Groovy/services/auth.dart';
 
 class AuthProvider extends ChangeNotifier {
-  // EmailLogin requires these
+  // EmailLogin and BudgetDetail requires these
   // ChooseLogin will set them
   BaseAuth _auth;
   BaseAuth get auth => _auth;

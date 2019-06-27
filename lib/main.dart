@@ -4,9 +4,10 @@ import 'package:Groovy/services/auth.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'screens/login/determine_auth_status.dart';
-import 'models/budget.dart';
+import 'screens/budget_detail.dart';
 import 'providers/auth_provider.dart';
 import 'providers/ui_provider.dart';
+import 'providers/budget_provider.dart';
 
 void main() => runApp(MyApp());
 
@@ -20,8 +21,8 @@ class MyApp extends StatelessWidget {
 
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider<BudgetModel>(
-          builder: (context) => BudgetModel(),
+        ChangeNotifierProvider<BudgetProvider>(
+          builder: (context) => BudgetProvider(),
         ),
         ChangeNotifierProvider<AuthProvider>(
           builder: (context) => AuthProvider(),
@@ -33,30 +34,17 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Groovy',
-        theme: ThemeData(primaryColor: Colors.black),
+        theme: ThemeData(
+            primaryColor: Colors.black, canvasColor: Colors.transparent),
         initialRoute: '/',
         routes: {
           '/': (context) => DetermineAuthStatusScreen(
                 auth: Auth(),
               ),
-          '/emailLogin': (context) => EmailLoginScreen()
+          '/emailLogin': (context) => EmailLoginScreen(),
+          '/budgetDetail': (context) => BudgetDetailScreen()
         },
       ),
     );
-    // return ChangeNotifierProvider(
-    //   builder: (context) => BudgetModel(),
-    //   child: MaterialApp(
-    //     debugShowCheckedModeBanner: false,
-    //     title: 'Groovy',
-    //     theme: ThemeData(primaryColor: Colors.black),
-    //     initialRoute: '/',
-    //     routes: {
-    //       '/': (context) => DetermineAuthStatusScreen(
-    //             auth: Auth(),
-    //           ),
-    //       '/emailLogin': (context) => EmailLoginScreen()
-    //     },
-    //   ),
-    // );
   }
 }

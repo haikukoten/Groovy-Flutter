@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:Groovy/providers/auth_provider.dart';
+import 'package:Groovy/providers/budget_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -14,6 +16,7 @@ import 'shared/swipe_actions/swipe_widget.dart';
 import 'shared/animated/background.dart';
 import 'shared/utilities.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'budget_detail.dart';
 
 class BudgetListScreen extends StatefulWidget {
   BudgetListScreen({Key key, this.auth, this.user, this.onSignedOut})
@@ -49,11 +52,8 @@ class _BudgetListScreen extends State<BudgetListScreen> {
   void initState() {
     super.initState();
     getSavedThemePreference();
-    _budgetQuery = _database
-        .reference()
-        .child("budgets")
-        .orderByChild("createdBy")
-        .equalTo(widget.user.email);
+    _budgetQuery = _database.reference().child("budgets");
+
     _onBudgetAddedSubscription =
         _budgetQuery.onChildAdded.listen(_onEntryAdded);
     _onBudgetChangedSubscription =
@@ -77,20 +77,63 @@ class _BudgetListScreen extends State<BudgetListScreen> {
   }
 
   _onEntryChanged(Event event) {
-    var oldBudget = _budgetList.singleWhere((budget) {
-      return budget.key == event.snapshot.key;
-    });
+    Budget budget = Budget.fromSnapshot(event.snapshot);
 
-    setState(() {
-      _budgetList[_budgetList.indexOf(oldBudget)] =
-          Budget.fromSnapshot(event.snapshot);
-    });
+    // Update budget if it was created by signed in user
+    if (event.snapshot.value["createdBy"] == widget.user.email) {
+      var oldBudget = _budgetList.singleWhere((budget) {
+        return budget.key == event.snapshot.key;
+      });
+
+      setState(() {
+        _budgetList[_budgetList.indexOf(oldBudget)] =
+            Budget.fromSnapshot(event.snapshot);
+      });
+
+      // Update budget if it was not created by signed in user (budget shared with user)
+    } else if (event.snapshot.value["sharedWith"].contains(widget.user.email)) {
+      try {
+        // Shared budget got changed so update it
+        var oldBudget = _budgetList.singleWhere((budget) {
+          return budget.key == event.snapshot.key;
+        });
+        setState(() {
+          _budgetList[_budgetList.indexOf(oldBudget)] =
+              Budget.fromSnapshot(event.snapshot);
+        });
+      } catch (e) {
+        // Budget just got shared with signed in user so add it to list
+        setState(() {
+          _budgetList.add(budget);
+          // Sort budgets alphabetically
+          _budgetList.sort((a, b) => a.name.compareTo(b.name));
+        });
+      }
+      ;
+
+      // User is no longer shared with budget so remove it
+    } else {
+      if (!budget.sharedWith.contains(widget.user.email)) {
+        for (Budget userBudget in _budgetList) {
+          if (userBudget.key == budget.key) {
+            setState(() {
+              _budgetList.remove(userBudget);
+            });
+          }
+        }
+      }
+    }
   }
 
   _onEntryAdded(Event event) {
-    setState(() {
-      _budgetList.add(Budget.fromSnapshot(event.snapshot));
-    });
+    if (event.snapshot.value["createdBy"] == widget.user.email ||
+        event.snapshot.value["sharedWith"].contains(widget.user.email)) {
+      setState(() {
+        _budgetList.add(Budget.fromSnapshot(event.snapshot));
+        // Sort budgets alphabetically
+        _budgetList.sort((a, b) => a.name.compareTo(b.name));
+      });
+    }
   }
 
   _onAmountChanged() {
@@ -161,7 +204,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
       return false;
     }
 
-    void _createBudget() async {
+    void _createBudget() {
       if (_validateAndSave()) {
         widget.auth.createBudget(_database, widget.user, _name, _amount);
         Navigator.of(context).pop();
@@ -285,7 +328,19 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                                     .withOpacity(0.1),
                                             borderRadius: BorderRadius.all(
                                                 Radius.circular(32.0)),
-                                            onTap: () {},
+                                            onTap: () {
+                                              var budgetProvider =
+                                                  Provider.of<BudgetProvider>(
+                                                      context);
+                                              budgetProvider.selectedBudget =
+                                                  _budgetList[index];
+                                              var authProvider =
+                                                  Provider.of<AuthProvider>(
+                                                      context);
+                                              authProvider.auth = widget.auth;
+                                              Navigator.pushNamed(
+                                                  context, '/budgetDetail');
+                                            },
                                             child: Stack(
                                               children: <Widget>[
                                                 ListTile(
