@@ -47,6 +47,8 @@ class _BudgetListScreen extends State<BudgetListScreen> {
 
   String _name;
   String _amount;
+  double initialDragAmount;
+  double finalDragAmount;
 
   @override
   void initState() {
@@ -211,6 +213,116 @@ class _BudgetListScreen extends State<BudgetListScreen> {
       }
     }
 
+    void _showCreateBudgetDialog() {
+      nameTextController.text = "";
+      amountTextController.text = "";
+      showInputDialog(
+          context,
+          uiProvider.isLightTheme ? Colors.white : Colors.black,
+          Text(
+            "Create Budget",
+            style: TextStyle(
+                color:
+                    uiProvider.isLightTheme ? Colors.black : Colors.grey[300],
+                fontWeight: FontWeight.w500),
+          ),
+          "",
+          FlatButton(
+              child: Text(
+                'Create',
+                style: TextStyle(
+                    color:
+                        uiProvider.isLightTheme ? Colors.black : Colors.white),
+              ),
+              onPressed: () async {
+                _createBudget();
+              }),
+          Form(
+            key: _createBudgetFormKey,
+            child: Column(
+              children: <Widget>[
+                TextFormField(
+                  style: TextStyle(
+                      color: uiProvider.isLightTheme
+                          ? Colors.grey[900]
+                          : Colors.white),
+                  cursorColor:
+                      uiProvider.isLightTheme ? Colors.black87 : Colors.grey,
+                  keyboardAppearance: uiProvider.isLightTheme
+                      ? Brightness.light
+                      : Brightness.dark,
+                  maxLines: 1,
+                  keyboardType: TextInputType.text,
+                  textCapitalization: TextCapitalization.words,
+                  autofocus: true,
+                  controller: nameTextController,
+                  decoration: InputDecoration(
+                      errorStyle: TextStyle(color: Colors.red[300]),
+                      hintText: 'Name',
+                      hintStyle: TextStyle(color: Colors.grey),
+                      focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                              color: uiProvider.isLightTheme
+                                  ? Colors.grey
+                                  : Colors.white)),
+                      enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                              color: uiProvider.isLightTheme
+                                  ? Colors.grey
+                                  : Colors.grey[200]))),
+                  validator: (value) {
+                    if (value.isEmpty) {
+                      return 'Name can\'t be empty';
+                    }
+                  },
+                  onSaved: (value) => _name = value,
+                ),
+                TextFormField(
+                  style: TextStyle(
+                      color: uiProvider.isLightTheme
+                          ? Colors.grey[900]
+                          : Colors.white),
+                  cursorColor:
+                      uiProvider.isLightTheme ? Colors.black87 : Colors.grey,
+                  keyboardAppearance: uiProvider.isLightTheme
+                      ? Brightness.light
+                      : Brightness.dark,
+                  maxLines: 1,
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  controller: amountTextController,
+                  decoration: InputDecoration(
+                      errorStyle: TextStyle(color: Colors.red[300]),
+                      hintText: '\$',
+                      hintStyle: TextStyle(color: Colors.grey),
+                      focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                              color: uiProvider.isLightTheme
+                                  ? Colors.grey
+                                  : Colors.white)),
+                      enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                              color: uiProvider.isLightTheme
+                                  ? Colors.grey
+                                  : Colors.grey[200]))),
+                  inputFormatters: [
+                    DecimalTextInputFormatter(decimalRange: 2),
+                    BlacklistingTextInputFormatter(RegExp('[\\,|\\-|\\ ]')),
+                  ],
+                  validator: (value) {
+                    if (value.isEmpty) {
+                      return 'Amount can\'t be empty';
+                    }
+                  },
+                  onFieldSubmitted: (value) {
+                    _createBudget();
+                  },
+                  onSaved: (value) => _amount = value,
+                ),
+              ],
+            ),
+          ));
+    }
+
     void _deleteBudget(Budget budget) async {
       showAlertDialog(context, "Delete '${budget.name}'",
           "Are you sure you want to delete this budget?", [
@@ -244,147 +356,164 @@ class _BudgetListScreen extends State<BudgetListScreen> {
 
     Widget _showBudgetList() {
       if (_budgetList.length > 0) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            Expanded(
-                child: MediaQuery.removePadding(
-              context: context,
-              removeTop: true,
-              child: ListView.builder(
-                  physics: BouncingScrollPhysics(),
-                  shrinkWrap: true,
-                  itemCount: _budgetList.length,
-                  itemBuilder: (BuildContext context, int index) {
-                    String budgetId = _budgetList[index].key;
-                    String name = _budgetList[index].name;
-                    num spent = _budgetList[index].spent;
-                    num setAmount = _budgetList[index].setAmount;
-                    return OnSlide(
-                        items: <ActionItems>[
-                          new ActionItems(
-                              icon: new IconButton(
-                                icon: new Icon(Icons.edit),
-                                onPressed: () {},
-                                color: Colors.white,
-                              ),
-                              onPress: () {
-                                print("edit");
-                              },
-                              backgroundColor: Colors.transparent),
-                          new ActionItems(
-                              icon: new IconButton(
-                                icon: new Icon(Icons.person_add),
-                                onPressed: () {},
-                                color: Colors.white,
-                              ),
-                              onPress: () {
-                                print("share");
-                              },
-                              backgroundColor: Colors.transparent),
-                          new ActionItems(
-                              icon: new IconButton(
-                                icon: new Icon(Icons.delete),
-                                onPressed: () {},
-                                color: Colors.white,
-                              ),
-                              onPress: () {
-                                _deleteBudget(_budgetList[index]);
-                                print("delete");
-                              },
-                              backgroundColor: Colors.transparent),
-                        ],
-                        child: Container(
-                          height: 120,
-                          padding: EdgeInsets.fromLTRB(32, 0, 32, 20),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(32.0),
-                          ),
-                          child: new ClipRect(
-                            child: new BackdropFilter(
-                              filter: new ImageFilter.blur(
-                                sigmaX: 15.0,
-                                sigmaY: 15.0,
-                              ),
-                              child: new Container(
-                                  decoration: new BoxDecoration(
-                                      borderRadius: BorderRadius.circular(32.0),
-                                      color: uiProvider.isLightTheme
-                                          ? Colors.white.withOpacity(0.5)
-                                          : Colors.black.withOpacity(0.5)),
-                                  child: Container(
-                                    child: Card(
-                                        borderOnForeground: false,
-                                        elevation: 0,
-                                        color: Colors.transparent,
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.all(
-                                                Radius.circular(32.0))),
-                                        child: InkWell(
-                                            splashColor: uiProvider.isLightTheme
-                                                ? Colors.grey[300]
-                                                    .withOpacity(0.5)
-                                                : Colors.grey[100]
-                                                    .withOpacity(0.1),
-                                            borderRadius: BorderRadius.all(
-                                                Radius.circular(32.0)),
-                                            onTap: () {
-                                              var budgetProvider =
-                                                  Provider.of<BudgetProvider>(
-                                                      context);
-                                              budgetProvider.selectedBudget =
-                                                  _budgetList[index];
-                                              var authProvider =
-                                                  Provider.of<AuthProvider>(
-                                                      context);
-                                              authProvider.auth = widget.auth;
-                                              Navigator.pushNamed(
-                                                  context, '/budgetDetail');
-                                            },
-                                            child: Stack(
-                                              children: <Widget>[
-                                                ListTile(
-                                                  contentPadding:
-                                                      EdgeInsets.only(
-                                                          top: 11.0,
-                                                          left: 30.0),
-                                                  title: Text(
-                                                    name,
-                                                    style: TextStyle(
-                                                        fontSize: 28.0,
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                        color: uiProvider
-                                                                .isLightTheme
-                                                            ? Colors.grey[800]
-                                                            : Colors.white),
-                                                  ),
-                                                  subtitle: Padding(
-                                                    padding: EdgeInsets.only(
-                                                        top: 5.0),
-                                                    child: Text(
-                                                      "${currency.format(spent)} of ${currency.format(setAmount)}",
+        // Swipe up to show 'Create Budget' dialog
+        return GestureDetector(
+          onPanStart: (details) {
+            initialDragAmount = details.globalPosition.dy;
+          },
+          onPanUpdate: (details) {
+            finalDragAmount = details.globalPosition.dy - initialDragAmount;
+          },
+          onPanEnd: (details) {
+            if (finalDragAmount < 0) {
+              _showCreateBudgetDialog();
+            }
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Expanded(
+                  child: MediaQuery.removePadding(
+                context: context,
+                removeTop: true,
+                child: ListView.builder(
+                    physics: BouncingScrollPhysics(),
+                    shrinkWrap: true,
+                    itemCount: _budgetList.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      String budgetId = _budgetList[index].key;
+                      String name = _budgetList[index].name;
+                      num spent = _budgetList[index].spent;
+                      num setAmount = _budgetList[index].setAmount;
+                      return OnSlide(
+                          items: <ActionItems>[
+                            new ActionItems(
+                                icon: new IconButton(
+                                  icon: new Icon(Icons.edit),
+                                  onPressed: () {},
+                                  color: Colors.white,
+                                ),
+                                onPress: () {
+                                  print("edit");
+                                },
+                                backgroundColor: Colors.transparent),
+                            new ActionItems(
+                                icon: new IconButton(
+                                  icon: new Icon(Icons.person_add),
+                                  onPressed: () {},
+                                  color: Colors.white,
+                                ),
+                                onPress: () {
+                                  print("share");
+                                },
+                                backgroundColor: Colors.transparent),
+                            new ActionItems(
+                                icon: new IconButton(
+                                  icon: new Icon(Icons.delete),
+                                  onPressed: () {},
+                                  color: Colors.white,
+                                ),
+                                onPress: () {
+                                  _deleteBudget(_budgetList[index]);
+                                  print("delete");
+                                },
+                                backgroundColor: Colors.transparent),
+                          ],
+                          child: Container(
+                            height: 120,
+                            padding: EdgeInsets.fromLTRB(32, 0, 32, 20),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(32.0),
+                            ),
+                            child: new ClipRect(
+                              child: new BackdropFilter(
+                                filter: new ImageFilter.blur(
+                                  sigmaX: 15.0,
+                                  sigmaY: 15.0,
+                                ),
+                                child: new Container(
+                                    decoration: new BoxDecoration(
+                                        borderRadius:
+                                            BorderRadius.circular(32.0),
+                                        color: uiProvider.isLightTheme
+                                            ? Colors.white.withOpacity(0.5)
+                                            : Colors.black.withOpacity(0.5)),
+                                    child: Container(
+                                      child: Card(
+                                          borderOnForeground: false,
+                                          elevation: 0,
+                                          color: Colors.transparent,
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.all(
+                                                  Radius.circular(32.0))),
+                                          child: InkWell(
+                                              splashColor:
+                                                  uiProvider.isLightTheme
+                                                      ? Colors.grey[300]
+                                                          .withOpacity(0.5)
+                                                      : Colors.grey[100]
+                                                          .withOpacity(0.1),
+                                              borderRadius: BorderRadius.all(
+                                                  Radius.circular(32.0)),
+                                              onTap: () {
+                                                var budgetProvider =
+                                                    Provider.of<BudgetProvider>(
+                                                        context);
+                                                budgetProvider.selectedBudget =
+                                                    _budgetList[index];
+                                                var authProvider =
+                                                    Provider.of<AuthProvider>(
+                                                        context);
+                                                authProvider.auth = widget.auth;
+                                                Navigator.pushNamed(
+                                                    context, '/budgetDetail');
+                                              },
+                                              child: Stack(
+                                                children: <Widget>[
+                                                  ListTile(
+                                                    contentPadding:
+                                                        EdgeInsets.only(
+                                                            top: 11.0,
+                                                            left: 30.0),
+                                                    title: Text(
+                                                      name,
                                                       style: TextStyle(
-                                                          color: uiProvider
-                                                                  .isLightTheme
-                                                              ? Colors.grey[700]
-                                                              : Colors
-                                                                  .grey[400],
+                                                          fontSize: 28.0,
                                                           fontWeight:
                                                               FontWeight.w700,
-                                                          fontSize: 17.0),
+                                                          color: uiProvider
+                                                                  .isLightTheme
+                                                              ? Colors.grey[800]
+                                                              : Colors.white),
+                                                    ),
+                                                    subtitle: Padding(
+                                                      padding: EdgeInsets.only(
+                                                          top: 5.0),
+                                                      child: Text(
+                                                        "${currency.format(spent)} of ${currency.format(setAmount)}",
+                                                        style: TextStyle(
+                                                            color: uiProvider
+                                                                    .isLightTheme
+                                                                ? Colors
+                                                                    .grey[700]
+                                                                : Colors
+                                                                    .grey[400],
+                                                            fontWeight:
+                                                                FontWeight.w700,
+                                                            fontSize: 17.0),
+                                                      ),
                                                     ),
                                                   ),
-                                                ),
-                                              ],
-                                            ))),
-                                  )),
+                                                ],
+                                              ))),
+                                    )),
+                              ),
                             ),
-                          ),
-                        ));
-                  }),
-            ))
-          ],
+                          ));
+                    }),
+              ))
+            ],
+          ),
         );
       } else {
         return Center(
@@ -705,119 +834,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
           ),
           elevation: 0,
           onPressed: () {
-            nameTextController.text = "";
-            amountTextController.text = "";
-            showInputDialog(
-                context,
-                uiProvider.isLightTheme ? Colors.white : Colors.black,
-                Text(
-                  "Create Budget",
-                  style: TextStyle(
-                      color: uiProvider.isLightTheme
-                          ? Colors.black
-                          : Colors.grey[300],
-                      fontWeight: FontWeight.w500),
-                ),
-                "",
-                FlatButton(
-                    child: Text(
-                      'Create',
-                      style: TextStyle(
-                          color: uiProvider.isLightTheme
-                              ? Colors.black
-                              : Colors.white),
-                    ),
-                    onPressed: () async {
-                      _createBudget();
-                    }),
-                Form(
-                  key: _createBudgetFormKey,
-                  child: Column(
-                    children: <Widget>[
-                      TextFormField(
-                        style: TextStyle(
-                            color: uiProvider.isLightTheme
-                                ? Colors.grey[900]
-                                : Colors.white),
-                        cursorColor: uiProvider.isLightTheme
-                            ? Colors.black87
-                            : Colors.grey,
-                        keyboardAppearance: uiProvider.isLightTheme
-                            ? Brightness.light
-                            : Brightness.dark,
-                        maxLines: 1,
-                        keyboardType: TextInputType.text,
-                        textCapitalization: TextCapitalization.words,
-                        autofocus: true,
-                        controller: nameTextController,
-                        decoration: InputDecoration(
-                            errorStyle: TextStyle(color: Colors.red[300]),
-                            hintText: 'Name',
-                            hintStyle: TextStyle(color: Colors.grey),
-                            focusedBorder: UnderlineInputBorder(
-                                borderSide: BorderSide(
-                                    color: uiProvider.isLightTheme
-                                        ? Colors.grey
-                                        : Colors.white)),
-                            enabledBorder: UnderlineInputBorder(
-                                borderSide: BorderSide(
-                                    color: uiProvider.isLightTheme
-                                        ? Colors.grey
-                                        : Colors.grey[200]))),
-                        validator: (value) {
-                          if (value.isEmpty) {
-                            return 'Name can\'t be empty';
-                          }
-                        },
-                        onSaved: (value) => _name = value,
-                      ),
-                      TextFormField(
-                        style: TextStyle(
-                            color: uiProvider.isLightTheme
-                                ? Colors.grey[900]
-                                : Colors.white),
-                        cursorColor: uiProvider.isLightTheme
-                            ? Colors.black87
-                            : Colors.grey,
-                        keyboardAppearance: uiProvider.isLightTheme
-                            ? Brightness.light
-                            : Brightness.dark,
-                        maxLines: 1,
-                        keyboardType:
-                            TextInputType.numberWithOptions(decimal: true),
-                        controller: amountTextController,
-                        decoration: InputDecoration(
-                            errorStyle: TextStyle(color: Colors.red[300]),
-                            hintText: '\$',
-                            hintStyle: TextStyle(color: Colors.grey),
-                            focusedBorder: UnderlineInputBorder(
-                                borderSide: BorderSide(
-                                    color: uiProvider.isLightTheme
-                                        ? Colors.grey
-                                        : Colors.white)),
-                            enabledBorder: UnderlineInputBorder(
-                                borderSide: BorderSide(
-                                    color: uiProvider.isLightTheme
-                                        ? Colors.grey
-                                        : Colors.grey[200]))),
-                        inputFormatters: [
-                          DecimalTextInputFormatter(decimalRange: 2),
-                          BlacklistingTextInputFormatter(
-                              RegExp('[\\,|\\-|\\ ]')),
-                        ],
-                        validator: (value) {
-                          if (value.isEmpty) {
-                            return 'Amount can\'t be empty';
-                          }
-                        },
-                        onFieldSubmitted: (value) {
-                          _createBudget();
-                        },
-                        onSaved: (value) => _amount = value,
-                      ),
-                    ],
-                  ),
-                ));
+            _showCreateBudgetDialog();
           },
         ),
       ),

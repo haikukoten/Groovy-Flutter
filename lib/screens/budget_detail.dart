@@ -22,7 +22,6 @@ class BudgetDetailScreen extends StatefulWidget {
 }
 
 class _BudgetDetailScreen extends State<BudgetDetailScreen> {
-  List<Budget> _budgetList = new List();
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   final currency = NumberFormat.simpleCurrency();
 
@@ -31,6 +30,8 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
 
   String _amount;
   Budget _budget;
+  double initialDragAmount;
+  double finalDragAmount;
 
   @override
   void initState() {
@@ -91,10 +92,6 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
           onPressed: () {
             authProvider.auth.deleteBudget(_database, budget);
             print("Delete ${budget.key} successful");
-            int budgetIndex = _budgetList.indexOf(budget);
-            setState(() {
-              _budgetList.removeAt(budgetIndex);
-            });
             Navigator.of(context).pop();
           },
         )
@@ -141,53 +138,49 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
     }
 
     Widget _buildDetailText() {
-      return onBottom(Padding(
-        padding: const EdgeInsets.only(bottom: 170.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: <Widget>[
-            Text(
-              "${currency.format(_budget.spent)}",
-              style: TextStyle(
-                  color: uiProvider.isLightTheme
-                      ? Colors.white.withOpacity(0.9)
-                      : Colors.black.withOpacity(0.7),
-                  fontSize: 38,
-                  fontWeight: FontWeight.bold),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: Text("spent of ${currency.format(_budget.setAmount)}",
-                  style: TextStyle(
-                      color: uiProvider.isLightTheme
-                          ? Colors.white.withOpacity(0.9)
-                          : Colors.black.withOpacity(0.7),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w400)),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(top: 45.0),
-              child: Text("${currency.format(_budget.left)}",
-                  style: TextStyle(
-                      color: uiProvider.isLightTheme
-                          ? Colors.white.withOpacity(0.9)
-                          : Colors.black.withOpacity(0.7),
-                      fontSize: 38,
-                      fontWeight: FontWeight.bold)),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: Text("left to spend",
-                  style: TextStyle(
-                      color: uiProvider.isLightTheme
-                          ? Colors.white.withOpacity(0.9)
-                          : Colors.black.withOpacity(0.7),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w400)),
-            )
-          ],
-        ),
-      ));
+      return Column(
+        children: <Widget>[
+          Text(
+            "${currency.format(_budget.spent)}",
+            style: TextStyle(
+                color: uiProvider.isLightTheme
+                    ? Colors.white.withOpacity(0.9)
+                    : Colors.black.withOpacity(0.6),
+                fontSize: 38,
+                fontWeight: FontWeight.bold),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text("spent of ${currency.format(_budget.setAmount)}",
+                style: TextStyle(
+                    color: uiProvider.isLightTheme
+                        ? Colors.white.withOpacity(0.9)
+                        : Colors.black.withOpacity(0.7),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w400)),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 45.0),
+            child: Text("${currency.format(_budget.left)}",
+                style: TextStyle(
+                    color: uiProvider.isLightTheme
+                        ? Colors.white.withOpacity(0.9)
+                        : Colors.black.withOpacity(0.6),
+                    fontSize: 38,
+                    fontWeight: FontWeight.bold)),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text("left to spend",
+                style: TextStyle(
+                    color: uiProvider.isLightTheme
+                        ? Colors.white.withOpacity(0.9)
+                        : Colors.black.withOpacity(0.7),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w400)),
+          )
+        ],
+      );
     }
 
     _addPurchase() {
@@ -200,202 +193,238 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
       }
     }
 
-    return Stack(children: <Widget>[
-      Positioned.fill(
-        child: AnimatedBackground(),
-      ),
-      Scaffold(
-        resizeToAvoidBottomInset: false,
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          iconTheme: IconThemeData(color: Colors.white),
-          brightness: Brightness.dark,
-          elevation: 0.0,
-          title: Text("${_budget.name}"),
-          actions: <Widget>[
-            IconButton(
-              icon: Icon(Icons.person_add),
-              onPressed: () {
-                print("share");
-              },
-            ),
-            IconButton(
-              icon: Icon(Icons.more_horiz),
-              onPressed: () {
-                modalBottomSheetMenu(
-                    context,
-                    uiProvider,
-                    Column(
-                      children: <Widget>[
-                        Padding(
-                            padding: EdgeInsets.fromLTRB(0.0, 10.0, 0.0, 10.0),
-                            child: SizedBox(
-                              height: 55.0,
-                              width: double.infinity,
-                              child: RaisedButton(
-                                elevation: 0.0,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(32.0)),
-                                color: Colors.transparent,
-                                child: Text('History',
-                                    style: TextStyle(
-                                        fontSize: 22.0,
-                                        color: uiProvider.isLightTheme
-                                            ? Colors.black
-                                            : Colors.white)),
-                                onPressed: () {
-                                  print("History");
-                                },
-                              ),
-                            )),
-                        Divider(
-                          color: Colors.grey[500],
-                        ),
-                        Padding(
-                            padding: EdgeInsets.fromLTRB(0.0, 10.0, 0.0, 10.0),
-                            child: SizedBox(
-                              height: 55.0,
-                              width: double.infinity,
-                              child: RaisedButton(
-                                elevation: 0.0,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(32.0)),
-                                color: Colors.transparent,
-                                child: Text('Edit',
-                                    style: TextStyle(
-                                        fontSize: 22.0,
-                                        color: uiProvider.isLightTheme
-                                            ? Colors.black
-                                            : Colors.white)),
-                                onPressed: () {
-                                  print("Edit");
-                                },
-                              ),
-                            )),
-                        Divider(
-                          color: Colors.grey[500],
-                        ),
-                        Padding(
-                            padding: EdgeInsets.fromLTRB(0.0, 10.0, 0.0, 10.0),
-                            child: SizedBox(
-                              height: 55.0,
-                              width: double.infinity,
-                              child: RaisedButton(
-                                elevation: 0.0,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(32.0)),
-                                color: Colors.transparent,
-                                child: Text('Delete',
-                                    style: TextStyle(
-                                        fontSize: 22.0,
-                                        color: uiProvider.isLightTheme
-                                            ? Colors.black
-                                            : Colors.white)),
-                                onPressed: () {
-                                  print("Delete");
-                                },
-                              ),
-                            ))
-                      ],
-                    ));
-              },
-            )
-          ],
-        ),
-        body: Stack(
-          children: <Widget>[_buildCircularIndicator(), _buildDetailText()],
-        ),
-        floatingActionButton: FloatingActionButton(
-          backgroundColor: uiProvider.isLightTheme
-              ? Colors.white.withOpacity(0.5)
-              : Colors.black.withOpacity(0.5),
-          child: Icon(
-            Icons.add,
-            size: 28,
-            color: uiProvider.isLightTheme ? Colors.grey[800] : Colors.white,
+    _showAddPurchaseDialog() {
+      amountTextController.text = "";
+      showInputDialog(
+          context,
+          uiProvider.isLightTheme ? Colors.white : Colors.black,
+          Text(
+            "Add Purchase",
+            style: TextStyle(
+                color:
+                    uiProvider.isLightTheme ? Colors.black : Colors.grey[300],
+                fontWeight: FontWeight.w500),
           ),
-          elevation: 0,
-          onPressed: () {
-            amountTextController.text = "";
-            showInputDialog(
-                context,
-                uiProvider.isLightTheme ? Colors.white : Colors.black,
-                Text(
-                  "Add Purchase",
+          "",
+          FlatButton(
+              child: Text(
+                'Add',
+                style: TextStyle(
+                    color:
+                        uiProvider.isLightTheme ? Colors.black : Colors.white),
+              ),
+              onPressed: () async {
+                _addPurchase();
+              }),
+          Form(
+            key: _addPurchaseFormKey,
+            child: Column(
+              children: <Widget>[
+                TextFormField(
                   style: TextStyle(
                       color: uiProvider.isLightTheme
-                          ? Colors.black
-                          : Colors.grey[300],
-                      fontWeight: FontWeight.w500),
+                          ? Colors.grey[900]
+                          : Colors.white),
+                  cursorColor:
+                      uiProvider.isLightTheme ? Colors.black87 : Colors.grey,
+                  keyboardAppearance: uiProvider.isLightTheme
+                      ? Brightness.light
+                      : Brightness.dark,
+                  autofocus: true,
+                  maxLines: 1,
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  controller: amountTextController,
+                  decoration: InputDecoration(
+                      errorStyle: TextStyle(color: Colors.red[300]),
+                      hintText: '\$',
+                      hintStyle: TextStyle(color: Colors.grey),
+                      focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                              color: uiProvider.isLightTheme
+                                  ? Colors.grey
+                                  : Colors.white)),
+                      enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                              color: uiProvider.isLightTheme
+                                  ? Colors.grey
+                                  : Colors.grey[200]))),
+                  inputFormatters: [
+                    DecimalTextInputFormatter(decimalRange: 2),
+                    BlacklistingTextInputFormatter(RegExp('[\\,|\\-|\\ ]')),
+                  ],
+                  validator: (value) {
+                    if (value.isEmpty) {
+                      return 'Amount can\'t be empty';
+                    }
+                  },
+                  onFieldSubmitted: (value) {
+                    _addPurchase();
+                  },
+                  onSaved: (value) => _amount = value,
                 ),
-                "",
-                FlatButton(
-                    child: Text(
-                      'Add',
-                      style: TextStyle(
-                          color: uiProvider.isLightTheme
-                              ? Colors.black
-                              : Colors.white),
+              ],
+            ),
+          ));
+    }
+
+    Widget _buildBody() {
+      return Column(
+        children: <Widget>[
+          Expanded(
+            child: _buildCircularIndicator(),
+            flex: 3,
+          ),
+          Expanded(
+            child: _buildDetailText(),
+            flex: 2,
+          ),
+        ],
+      );
+    }
+
+    void _showModalMenu() {
+      modalBottomSheetMenu(
+          context,
+          uiProvider,
+          Column(
+            children: <Widget>[
+              Padding(
+                  padding: EdgeInsets.fromLTRB(0.0, 10.0, 0.0, 10.0),
+                  child: SizedBox(
+                    height: 55.0,
+                    width: double.infinity,
+                    child: RaisedButton(
+                      elevation: 0.0,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(32.0)),
+                      color: Colors.transparent,
+                      child: Text('History',
+                          style: TextStyle(
+                              fontSize: 22.0,
+                              color: uiProvider.isLightTheme
+                                  ? Colors.black
+                                  : Colors.white)),
+                      onPressed: () {
+                        print("History");
+                      },
                     ),
-                    onPressed: () async {
-                      _addPurchase();
-                    }),
-                Form(
-                  key: _addPurchaseFormKey,
-                  child: Column(
-                    children: <Widget>[
-                      TextFormField(
-                        style: TextStyle(
-                            color: uiProvider.isLightTheme
-                                ? Colors.grey[900]
-                                : Colors.white),
-                        cursorColor: uiProvider.isLightTheme
-                            ? Colors.black87
-                            : Colors.grey,
-                        keyboardAppearance: uiProvider.isLightTheme
-                            ? Brightness.light
-                            : Brightness.dark,
-                        autofocus: true,
-                        maxLines: 1,
-                        keyboardType:
-                            TextInputType.numberWithOptions(decimal: true),
-                        controller: amountTextController,
-                        decoration: InputDecoration(
-                            errorStyle: TextStyle(color: Colors.red[300]),
-                            hintText: '\$',
-                            hintStyle: TextStyle(color: Colors.grey),
-                            focusedBorder: UnderlineInputBorder(
-                                borderSide: BorderSide(
-                                    color: uiProvider.isLightTheme
-                                        ? Colors.grey
-                                        : Colors.white)),
-                            enabledBorder: UnderlineInputBorder(
-                                borderSide: BorderSide(
-                                    color: uiProvider.isLightTheme
-                                        ? Colors.grey
-                                        : Colors.grey[200]))),
-                        inputFormatters: [
-                          DecimalTextInputFormatter(decimalRange: 2),
-                          BlacklistingTextInputFormatter(
-                              RegExp('[\\,|\\-|\\ ]')),
-                        ],
-                        validator: (value) {
-                          if (value.isEmpty) {
-                            return 'Amount can\'t be empty';
-                          }
-                        },
-                        onFieldSubmitted: (value) {
-                          _addPurchase();
-                        },
-                        onSaved: (value) => _amount = value,
-                      ),
-                    ],
+                  )),
+              Divider(
+                color: Colors.grey[500],
+              ),
+              Padding(
+                  padding: EdgeInsets.fromLTRB(0.0, 10.0, 0.0, 10.0),
+                  child: SizedBox(
+                    height: 55.0,
+                    width: double.infinity,
+                    child: RaisedButton(
+                      elevation: 0.0,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(32.0)),
+                      color: Colors.transparent,
+                      child: Text('Edit',
+                          style: TextStyle(
+                              fontSize: 22.0,
+                              color: uiProvider.isLightTheme
+                                  ? Colors.black
+                                  : Colors.white)),
+                      onPressed: () {
+                        print("Edit");
+                      },
+                    ),
+                  )),
+              Divider(
+                color: Colors.grey[500],
+              ),
+              Padding(
+                  padding: EdgeInsets.fromLTRB(0.0, 10.0, 0.0, 10.0),
+                  child: SizedBox(
+                    height: 55.0,
+                    width: double.infinity,
+                    child: RaisedButton(
+                      elevation: 0.0,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(32.0)),
+                      color: Colors.transparent,
+                      child: Text('Delete',
+                          style: TextStyle(
+                              fontSize: 22.0,
+                              color: uiProvider.isLightTheme
+                                  ? Colors.black
+                                  : Colors.white)),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _deleteBudget(_budget);
+                      },
+                    ),
+                  ))
+            ],
+          ));
+    }
+
+    return GestureDetector(
+        onPanStart: (details) {
+          initialDragAmount = details.globalPosition.dy;
+        },
+        onPanUpdate: (details) {
+          finalDragAmount = details.globalPosition.dy - initialDragAmount;
+        },
+        onPanEnd: (details) {
+          if (finalDragAmount < 0) {
+            _showAddPurchaseDialog();
+          }
+
+          if (finalDragAmount > 0) {
+            _showModalMenu();
+          }
+        },
+        child: Stack(
+          children: <Widget>[
+            Positioned.fill(
+              child: AnimatedBackground(),
+            ),
+            Scaffold(
+              resizeToAvoidBottomInset: false,
+              backgroundColor: Colors.transparent,
+              appBar: AppBar(
+                backgroundColor: Colors.transparent,
+                iconTheme: IconThemeData(color: Colors.white),
+                brightness: Brightness.dark,
+                elevation: 0.0,
+                title: Text("${_budget.name}"),
+                actions: <Widget>[
+                  IconButton(
+                    icon: Icon(Icons.person_add),
+                    onPressed: () {
+                      print("share");
+                    },
                   ),
-                ));
-          },
-        ),
-      ),
-    ]);
+                  IconButton(
+                    icon: Icon(Icons.more_horiz),
+                    onPressed: () {
+                      _showModalMenu();
+                    },
+                  )
+                ],
+              ),
+              body: _buildBody(),
+              floatingActionButton: FloatingActionButton(
+                backgroundColor: uiProvider.isLightTheme
+                    ? Colors.white.withOpacity(0.5)
+                    : Colors.black.withOpacity(0.5),
+                child: Icon(
+                  Icons.add,
+                  size: 28,
+                  color:
+                      uiProvider.isLightTheme ? Colors.grey[800] : Colors.white,
+                ),
+                elevation: 0,
+                onPressed: () {
+                  _showAddPurchaseDialog();
+                },
+              ),
+            ),
+          ],
+        ));
   }
 }
