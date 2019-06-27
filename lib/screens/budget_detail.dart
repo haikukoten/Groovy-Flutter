@@ -1,5 +1,5 @@
-import 'dart:async';
 import 'dart:ui';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:Groovy/providers/auth_provider.dart';
 import 'package:Groovy/providers/budget_provider.dart';
@@ -27,9 +27,11 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
 
   final _addPurchaseFormKey = GlobalKey<FormState>();
   var amountTextController = TextEditingController();
+  var noteTextController = TextEditingController();
 
   String _amount;
-  Budget _budget;
+  String _note;
+
   double initialDragAmount;
   double finalDragAmount;
 
@@ -59,7 +61,6 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
     var authProvider = Provider.of<AuthProvider>(context);
     var uiProvider = Provider.of<UIProvider>(context);
     var budgetProvider = Provider.of<BudgetProvider>(context);
-    _budget = budgetProvider.selectedBudget;
 
     // Check if form is valid before adding purchase
     bool _validateAndSave() {
@@ -92,10 +93,23 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
           onPressed: () {
             authProvider.auth.deleteBudget(_database, budget);
             print("Delete ${budget.key} successful");
+            budgetProvider.budgetList.remove(budget);
+            Navigator.of(context).pop();
             Navigator.of(context).pop();
           },
         )
       ]);
+    }
+
+    // Show 100% of circular indicator if spending is over 100%
+    double _buildPercentSpent() {
+      double percentSpent =
+          (budgetProvider.selectedBudget.spent.floorToDouble() /
+              budgetProvider.selectedBudget.setAmount.floorToDouble());
+      if (percentSpent > 1) {
+        percentSpent = 1;
+      }
+      return percentSpent;
     }
 
     Widget _buildCircularIndicator() {
@@ -108,16 +122,28 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
           startAngle: 0.0,
           radius: 225.0,
           lineWidth: 30.0,
-          percent: (_budget.spent.floorToDouble() /
-              _budget.setAmount.floorToDouble()),
+          percent: _buildPercentSpent(),
           animationDuration: 800,
-          center: Text(
-            "${((_budget.spent / _budget.setAmount * 100).floor())}%",
-            style: TextStyle(
-                color: Colors.white.withOpacity(0.99),
-                fontWeight: FontWeight.bold,
-                fontSize: 24),
-          ),
+          // Show 500+ % if spending is over 500 % of set amount
+          center: (budgetProvider.selectedBudget.spent.floorToDouble() /
+                          budgetProvider.selectedBudget.setAmount
+                              .floorToDouble()) *
+                      100 >
+                  500
+              ? Text(
+                  "500+ %",
+                  style: TextStyle(
+                      color: Colors.white.withOpacity(0.99),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 24),
+                )
+              : Text(
+                  "${((budgetProvider.selectedBudget.spent / budgetProvider.selectedBudget.setAmount * 100).floor())}%",
+                  style: TextStyle(
+                      color: Colors.white.withOpacity(0.99),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 24),
+                ),
           circularStrokeCap: CircularStrokeCap.round,
           backgroundColor: uiProvider.isLightTheme
               ? Colors.white.withOpacity(0.4)
@@ -141,7 +167,7 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
       return Column(
         children: <Widget>[
           Text(
-            "${currency.format(_budget.spent)}",
+            "${currency.format(budgetProvider.selectedBudget.spent)}",
             style: TextStyle(
                 color: uiProvider.isLightTheme
                     ? Colors.white.withOpacity(0.9)
@@ -151,7 +177,8 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
           ),
           Padding(
             padding: const EdgeInsets.only(top: 8.0),
-            child: Text("spent of ${currency.format(_budget.setAmount)}",
+            child: Text(
+                "spent of ${currency.format(budgetProvider.selectedBudget.setAmount)}",
                 style: TextStyle(
                     color: uiProvider.isLightTheme
                         ? Colors.white.withOpacity(0.9)
@@ -161,7 +188,8 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
           ),
           Padding(
             padding: const EdgeInsets.only(top: 45.0),
-            child: Text("${currency.format(_budget.left)}",
+            child: Text(
+                "${currency.format(budgetProvider.selectedBudget.left)}",
                 style: TextStyle(
                     color: uiProvider.isLightTheme
                         ? Colors.white.withOpacity(0.9)
@@ -183,12 +211,30 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
       );
     }
 
-    _addPurchase() {
+    // TODO: implement date code in history
+    // final dateFormat = new DateFormat('MM/dd/yy');
+    // print("${dateFormat.format(DateTime.fromMillisecondsSinceEpoch(now))}");
+
+    _addPurchase() async {
       if (_validateAndSave()) {
-        _budget.spent += num.parse(_amount);
-        _budget.left -= num.parse(_amount);
-        print(_budget.spent);
-        authProvider.auth.updateBudget(_database, _budget);
+        FirebaseUser user = await authProvider.auth.getCurrentUser();
+        var now = DateTime.now().millisecondsSinceEpoch;
+        var history = [];
+        for (String historyItem in budgetProvider.selectedBudget.history) {
+          history.add(historyItem);
+        }
+        history.add("$_amount:$_note");
+        var userDate = [];
+        for (String userDateItem in budgetProvider.selectedBudget.userDate) {
+          userDate.add(userDateItem);
+        }
+        userDate.add("${user.email}:$now");
+        budgetProvider.selectedBudget.spent += num.parse(_amount);
+        budgetProvider.selectedBudget.left -= num.parse(_amount);
+        budgetProvider.selectedBudget.history = history;
+        budgetProvider.selectedBudget.userDate = userDate;
+        authProvider.auth
+            .updateBudget(_database, budgetProvider.selectedBudget);
         Navigator.of(context).pop();
       }
     }
@@ -262,6 +308,39 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
                   },
                   onSaved: (value) => _amount = value,
                 ),
+                TextFormField(
+                  style: TextStyle(
+                      color: uiProvider.isLightTheme
+                          ? Colors.grey[900]
+                          : Colors.white),
+                  cursorColor:
+                      uiProvider.isLightTheme ? Colors.black87 : Colors.grey,
+                  keyboardAppearance: uiProvider.isLightTheme
+                      ? Brightness.light
+                      : Brightness.dark,
+                  autofocus: true,
+                  maxLines: 1,
+                  keyboardType: TextInputType.text,
+                  controller: noteTextController,
+                  decoration: InputDecoration(
+                      errorStyle: TextStyle(color: Colors.red[300]),
+                      hintText: 'Note',
+                      hintStyle: TextStyle(color: Colors.grey),
+                      focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                              color: uiProvider.isLightTheme
+                                  ? Colors.grey
+                                  : Colors.white)),
+                      enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                              color: uiProvider.isLightTheme
+                                  ? Colors.grey
+                                  : Colors.grey[200]))),
+                  onFieldSubmitted: (value) {
+                    _addPurchase();
+                  },
+                  onSaved: (value) => _note = value ?? "",
+                )
               ],
             ),
           ));
@@ -289,7 +368,31 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
           Column(
             children: <Widget>[
               Padding(
-                  padding: EdgeInsets.fromLTRB(0.0, 10.0, 0.0, 10.0),
+                  padding: EdgeInsets.fromLTRB(0.0, 10.0, 0.0, 5.0),
+                  child: SizedBox(
+                    height: 55.0,
+                    width: double.infinity,
+                    child: RaisedButton(
+                      elevation: 0.0,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(32.0)),
+                      color: Colors.transparent,
+                      child: Text('Share',
+                          style: TextStyle(
+                              fontSize: 22.0,
+                              color: uiProvider.isLightTheme
+                                  ? Colors.black
+                                  : Colors.white)),
+                      onPressed: () {
+                        print("Share");
+                      },
+                    ),
+                  )),
+              Divider(
+                color: Colors.grey[500],
+              ),
+              Padding(
+                  padding: EdgeInsets.fromLTRB(0.0, 5.0, 0.0, 5.0),
                   child: SizedBox(
                     height: 55.0,
                     width: double.infinity,
@@ -313,7 +416,7 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
                 color: Colors.grey[500],
               ),
               Padding(
-                  padding: EdgeInsets.fromLTRB(0.0, 10.0, 0.0, 10.0),
+                  padding: EdgeInsets.fromLTRB(0.0, 5.0, 0.0, 5.0),
                   child: SizedBox(
                     height: 55.0,
                     width: double.infinity,
@@ -337,7 +440,7 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
                 color: Colors.grey[500],
               ),
               Padding(
-                  padding: EdgeInsets.fromLTRB(0.0, 10.0, 0.0, 10.0),
+                  padding: EdgeInsets.fromLTRB(0.0, 5.0, 0.0, 10.0),
                   child: SizedBox(
                     height: 55.0,
                     width: double.infinity,
@@ -350,11 +453,11 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
                           style: TextStyle(
                               fontSize: 22.0,
                               color: uiProvider.isLightTheme
-                                  ? Colors.black
-                                  : Colors.white)),
+                                  ? Colors.purple[300]
+                                  : Color(0xffe0c3fc))),
                       onPressed: () {
                         Navigator.pop(context);
-                        _deleteBudget(_budget);
+                        _deleteBudget(budgetProvider.selectedBudget);
                       },
                     ),
                   ))
@@ -370,10 +473,12 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
           finalDragAmount = details.globalPosition.dy - initialDragAmount;
         },
         onPanEnd: (details) {
+          // Swipe up to show 'Add Purchase' dialog
           if (finalDragAmount < 0) {
             _showAddPurchaseDialog();
           }
 
+          // Swipe down to show modal menu
           if (finalDragAmount > 0) {
             _showModalMenu();
           }
@@ -391,16 +496,10 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
                 iconTheme: IconThemeData(color: Colors.white),
                 brightness: Brightness.dark,
                 elevation: 0.0,
-                title: Text("${_budget.name}"),
+                title: Text("${budgetProvider.selectedBudget.name}"),
                 actions: <Widget>[
                   IconButton(
-                    icon: Icon(Icons.person_add),
-                    onPressed: () {
-                      print("share");
-                    },
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.more_horiz),
+                    icon: Icon(Icons.more_vert),
                     onPressed: () {
                       _showModalMenu();
                     },

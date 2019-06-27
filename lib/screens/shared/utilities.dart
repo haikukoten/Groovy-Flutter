@@ -130,7 +130,7 @@ void modalBottomSheetMenu(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(15.0, 0, 15.0, 15.0),
               child: Container(
-                height: 265.0,
+                height: 320.0,
                 color: Colors.transparent,
                 child: Container(
                     decoration: BoxDecoration(

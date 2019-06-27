@@ -16,7 +16,6 @@ import 'shared/swipe_actions/swipe_widget.dart';
 import 'shared/animated/background.dart';
 import 'shared/utilities.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'budget_detail.dart';
 
 class BudgetListScreen extends StatefulWidget {
   BudgetListScreen({Key key, this.auth, this.user, this.onSignedOut})
@@ -31,7 +30,6 @@ class BudgetListScreen extends StatefulWidget {
 }
 
 class _BudgetListScreen extends State<BudgetListScreen> {
-  List<Budget> _budgetList = new List();
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   Query _budgetQuery;
   final currency = NumberFormat.simpleCurrency();
@@ -80,15 +78,17 @@ class _BudgetListScreen extends State<BudgetListScreen> {
 
   _onEntryChanged(Event event) {
     Budget budget = Budget.fromSnapshot(event.snapshot);
+    var budgetProvider = Provider.of<BudgetProvider>(context);
 
     // Update budget if it was created by signed in user
     if (event.snapshot.value["createdBy"] == widget.user.email) {
-      var oldBudget = _budgetList.singleWhere((budget) {
+      var oldBudget = budgetProvider.budgetList.singleWhere((budget) {
         return budget.key == event.snapshot.key;
       });
 
       setState(() {
-        _budgetList[_budgetList.indexOf(oldBudget)] =
+        budgetProvider
+                .budgetList[budgetProvider.budgetList.indexOf(oldBudget)] =
             Budget.fromSnapshot(event.snapshot);
       });
 
@@ -96,19 +96,20 @@ class _BudgetListScreen extends State<BudgetListScreen> {
     } else if (event.snapshot.value["sharedWith"].contains(widget.user.email)) {
       try {
         // Shared budget got changed so update it
-        var oldBudget = _budgetList.singleWhere((budget) {
+        var oldBudget = budgetProvider.budgetList.singleWhere((budget) {
           return budget.key == event.snapshot.key;
         });
         setState(() {
-          _budgetList[_budgetList.indexOf(oldBudget)] =
+          budgetProvider
+                  .budgetList[budgetProvider.budgetList.indexOf(oldBudget)] =
               Budget.fromSnapshot(event.snapshot);
         });
       } catch (e) {
         // Budget just got shared with signed in user so add it to list
         setState(() {
-          _budgetList.add(budget);
+          budgetProvider.budgetList.add(budget);
           // Sort budgets alphabetically
-          _budgetList.sort((a, b) => a.name.compareTo(b.name));
+          budgetProvider.budgetList.sort((a, b) => a.name.compareTo(b.name));
         });
       }
       ;
@@ -116,10 +117,10 @@ class _BudgetListScreen extends State<BudgetListScreen> {
       // User is no longer shared with budget so remove it
     } else {
       if (!budget.sharedWith.contains(widget.user.email)) {
-        for (Budget userBudget in _budgetList) {
+        for (Budget userBudget in budgetProvider.budgetList) {
           if (userBudget.key == budget.key) {
             setState(() {
-              _budgetList.remove(userBudget);
+              budgetProvider.budgetList.remove(userBudget);
             });
           }
         }
@@ -128,12 +129,13 @@ class _BudgetListScreen extends State<BudgetListScreen> {
   }
 
   _onEntryAdded(Event event) {
+    var budgetProvider = Provider.of<BudgetProvider>(context);
     if (event.snapshot.value["createdBy"] == widget.user.email ||
         event.snapshot.value["sharedWith"].contains(widget.user.email)) {
       setState(() {
-        _budgetList.add(Budget.fromSnapshot(event.snapshot));
+        budgetProvider.budgetList.add(Budget.fromSnapshot(event.snapshot));
         // Sort budgets alphabetically
-        _budgetList.sort((a, b) => a.name.compareTo(b.name));
+        budgetProvider.budgetList.sort((a, b) => a.name.compareTo(b.name));
       });
     }
   }
@@ -152,29 +154,29 @@ class _BudgetListScreen extends State<BudgetListScreen> {
     }
   }
 
-  num totalAmountSpent() {
+  num totalAmountSpent(BudgetProvider budgetProvider) {
     num totalSpent = 0;
-    for (int i = 0; i < _budgetList.length; i++) {
-      totalSpent += _budgetList[i].spent;
+    for (int i = 0; i < budgetProvider.budgetList.length; i++) {
+      totalSpent += budgetProvider.budgetList[i].spent;
     }
     return totalSpent;
   }
 
-  num totalAmountBudgeted() {
+  num totalAmountBudgeted(BudgetProvider budgetProvider) {
     num totalBudgeted = 0;
-    if (_budgetList.length > 0) {
-      for (int i = 0; i < _budgetList.length; i++) {
-        totalBudgeted += _budgetList[i].setAmount;
+    if (budgetProvider.budgetList.length > 0) {
+      for (int i = 0; i < budgetProvider.budgetList.length; i++) {
+        totalBudgeted += budgetProvider.budgetList[i].setAmount;
       }
     }
     return totalBudgeted;
   }
 
-  num totalAmountLeft() {
+  num totalAmountLeft(BudgetProvider budgetProvider) {
     num totalLeft = 0;
-    if (_budgetList.length > 0) {
-      for (int i = 0; i < _budgetList.length; i++) {
-        totalLeft += _budgetList[i].left;
+    if (budgetProvider.budgetList.length > 0) {
+      for (int i = 0; i < budgetProvider.budgetList.length; i++) {
+        totalLeft += budgetProvider.budgetList[i].left;
       }
     }
     return totalLeft;
@@ -183,6 +185,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
   @override
   Widget build(BuildContext context) {
     var uiProvider = Provider.of<UIProvider>(context);
+    var budgetProvider = Provider.of<BudgetProvider>(context);
 
     _signOut() async {
       try {
@@ -344,9 +347,9 @@ class _BudgetListScreen extends State<BudgetListScreen> {
           onPressed: () {
             widget.auth.deleteBudget(_database, budget);
             print("Delete ${budget.key} successful");
-            int budgetIndex = _budgetList.indexOf(budget);
+            int budgetIndex = budgetProvider.budgetList.indexOf(budget);
             setState(() {
-              _budgetList.removeAt(budgetIndex);
+              budgetProvider.budgetList.removeAt(budgetIndex);
             });
             Navigator.of(context).pop();
           },
@@ -355,7 +358,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
     }
 
     Widget _showBudgetList() {
-      if (_budgetList.length > 0) {
+      if (budgetProvider.budgetList.length > 0) {
         // Swipe up to show 'Create Budget' dialog
         return GestureDetector(
           onPanStart: (details) {
@@ -379,12 +382,12 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                 child: ListView.builder(
                     physics: BouncingScrollPhysics(),
                     shrinkWrap: true,
-                    itemCount: _budgetList.length,
+                    itemCount: budgetProvider.budgetList.length,
                     itemBuilder: (BuildContext context, int index) {
-                      String budgetId = _budgetList[index].key;
-                      String name = _budgetList[index].name;
-                      num spent = _budgetList[index].spent;
-                      num setAmount = _budgetList[index].setAmount;
+                      String name = budgetProvider.budgetList[index].name;
+                      num spent = budgetProvider.budgetList[index].spent;
+                      num setAmount =
+                          budgetProvider.budgetList[index].setAmount;
                       return OnSlide(
                           items: <ActionItems>[
                             new ActionItems(
@@ -414,7 +417,8 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                   color: Colors.white,
                                 ),
                                 onPress: () {
-                                  _deleteBudget(_budgetList[index]);
+                                  _deleteBudget(
+                                      budgetProvider.budgetList[index]);
                                   print("delete");
                                 },
                                 backgroundColor: Colors.transparent),
@@ -460,7 +464,8 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                                     Provider.of<BudgetProvider>(
                                                         context);
                                                 budgetProvider.selectedBudget =
-                                                    _budgetList[index];
+                                                    budgetProvider
+                                                        .budgetList[index];
                                                 var authProvider =
                                                     Provider.of<AuthProvider>(
                                                         context);
@@ -616,7 +621,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                     Padding(
                       padding: const EdgeInsets.only(top: 5.0),
                       child: Text(
-                        "${_budgetList.length.toString()}",
+                        "${budgetProvider.budgetList.length.toString()}",
                         style: TextStyle(
                             fontSize: 22.0,
                             fontWeight: FontWeight.w700,
@@ -649,7 +654,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                     Padding(
                       padding: const EdgeInsets.only(top: 5.0),
                       child: Text(
-                        "${currency.format(totalAmountSpent())}",
+                        "${currency.format(totalAmountSpent(budgetProvider))}",
                         style: TextStyle(
                             fontSize: 22.0,
                             fontWeight: FontWeight.w700,
@@ -682,7 +687,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                     Padding(
                       padding: const EdgeInsets.only(top: 5.0),
                       child: Text(
-                        "${currency.format(totalAmountLeft())}",
+                        "${currency.format(totalAmountLeft(budgetProvider))}",
                         style: TextStyle(
                             fontSize: 22.0,
                             fontWeight: FontWeight.w700,
