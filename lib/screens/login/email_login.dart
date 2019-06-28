@@ -17,9 +17,10 @@ enum FormMode { LOGIN, SIGNUP }
 
 class _EmailLoginScreen extends State<EmailLoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  var emailTextController = TextEditingController();
-  var passwordFocusNode = FocusNode();
-  var passwordRecoveryEmailController = TextEditingController();
+  var _emailTextController = TextEditingController();
+  var _emailFocusNode = FocusNode();
+  var _passwordFocusNode = FocusNode();
+  var _passwordRecoveryEmailController = TextEditingController();
 
   String _email;
   String _password;
@@ -32,6 +33,18 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
   void initState() {
     _errorMessage = "";
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    // Clean up the focus node when the Form is disposed.
+    _passwordFocusNode.dispose();
+    _emailFocusNode.dispose();
+    // Clean up the controller when the widget is removed from the
+    // widget tree.
+    _emailTextController.dispose();
+    _passwordRecoveryEmailController.dispose();
+    super.dispose();
   }
 
   @override
@@ -63,33 +76,65 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
             : SizedBox.shrink(),
         onPressed: _formMode == FormMode.LOGIN
             ? () {
-                passwordRecoveryEmailController.text = emailTextController.text;
+                _passwordRecoveryEmailController.text =
+                    _emailTextController.text;
                 showInputDialog(
                     context,
                     Colors.white,
                     Text("Reset Password"),
                     "Get instructions sent to this email that explain how to reset your password",
-                    FlatButton(
-                      child: Text(
-                        'Send',
-                        style: TextStyle(color: Theme.of(context).primaryColor),
+                    [
+                      FlatButton(
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
                       ),
-                      onPressed: () async {
-                        Navigator.of(context).pop();
-                        setState(() {
-                          uiProvider.isLoading = true;
-                        });
+                      FlatButton(
+                        child: Text(
+                          'Send',
+                          style:
+                              TextStyle(color: Theme.of(context).primaryColor),
+                        ),
+                        onPressed: () async {
+                          Navigator.of(context).pop();
+                          setState(() {
+                            uiProvider.isLoading = true;
+                          });
 
-                        try {
-                          if (passwordRecoveryEmailController.text != "" &&
-                              passwordRecoveryEmailController.text != null) {
+                          try {
+                            if (_passwordRecoveryEmailController.text != "" &&
+                                _passwordRecoveryEmailController.text != null) {
+                              setState(() {
+                                uiProvider.isLoading = false;
+                              });
+                              await authProvider.auth.sendPasswordRecoveryEmail(
+                                  _passwordRecoveryEmailController.text);
+                              showAlertDialog(context, "Success",
+                                  "Check your email to reset your password", [
+                                FlatButton(
+                                  child: Text(
+                                    'OK',
+                                    style: TextStyle(color: Colors.black),
+                                  ),
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                )
+                              ]);
+                            } else {
+                              setState(() {
+                                uiProvider.isLoading = false;
+                              });
+                            }
+                          } catch (e) {
                             setState(() {
                               uiProvider.isLoading = false;
                             });
-                            await authProvider.auth.sendPasswordRecoveryEmail(
-                                passwordRecoveryEmailController.text);
-                            showAlertDialog(context, "Success",
-                                "Check your email to reset your password", [
+                            showAlertDialog(context, "Try again", e.message, [
                               FlatButton(
                                 child: Text(
                                   'OK',
@@ -100,33 +145,14 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
                                 },
                               )
                             ]);
-                          } else {
-                            setState(() {
-                              uiProvider.isLoading = false;
-                            });
                           }
-                        } catch (e) {
-                          setState(() {
-                            uiProvider.isLoading = false;
-                          });
-                          showAlertDialog(context, "Try again", e.message, [
-                            FlatButton(
-                              child: Text(
-                                'OK',
-                                style: TextStyle(color: Colors.black),
-                              ),
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                              },
-                            )
-                          ]);
-                        }
-                      },
-                    ),
+                        },
+                      ),
+                    ],
                     Container(
                       padding: EdgeInsets.only(top: 7.0),
                       child: TextField(
-                        controller: passwordRecoveryEmailController,
+                        controller: _passwordRecoveryEmailController,
                         autofocus: true,
                         cursorColor: Colors.black87,
                         keyboardAppearance: Brightness.dark,
@@ -222,7 +248,8 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
           maxLines: 1,
           keyboardType: TextInputType.emailAddress,
           autofocus: true,
-          controller: emailTextController,
+          focusNode: _emailFocusNode,
+          controller: _emailTextController,
           decoration: InputDecoration(
               hintText: 'Email',
               icon: Icon(
@@ -238,7 +265,8 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
             }
           },
           onFieldSubmitted: (value) {
-            FocusScope.of(context).requestFocus(passwordFocusNode);
+            _emailFocusNode.unfocus();
+            FocusScope.of(context).requestFocus(_passwordFocusNode);
           },
           onSaved: (value) => _email = value,
         ),
@@ -260,7 +288,7 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
                 Icons.lock,
                 color: Colors.grey[400],
               )),
-          focusNode: passwordFocusNode,
+          focusNode: _passwordFocusNode,
           onFieldSubmitted: (value) {
             _validateAndSubmit();
           },
@@ -330,6 +358,7 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
     }
 
     return Scaffold(
+        backgroundColor: Colors.white,
         appBar: AppBar(
           title: _formMode == FormMode.LOGIN ? Text("Login") : Text("Sign Up"),
           backgroundColor: Colors.white,

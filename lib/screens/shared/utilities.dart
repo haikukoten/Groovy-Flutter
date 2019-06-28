@@ -13,7 +13,9 @@ Widget showCircularProgress(BuildContext context) {
       child: Container(
         color: Colors.grey[100].withOpacity(0.8),
         child: Center(
-          child: CircularProgressIndicator(),
+          child: CircularProgressIndicator(
+            valueColor: new AlwaysStoppedAnimation<Color>(Colors.black),
+          ),
         ),
       ),
     );
@@ -75,7 +77,7 @@ Future<void> showAlertDialog(BuildContext context, String title, String message,
 }
 
 Future<void> showInputDialog(BuildContext context, Color color, Text title,
-    String message, FlatButton submit,
+    String message, List<Widget> actions,
     [Widget inputs, Function func]) async {
   return showDialog<void>(
     context: context,
@@ -99,18 +101,7 @@ Future<void> showInputDialog(BuildContext context, Color color, Text title,
           ),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.all(Radius.circular(32.0))),
-          actions: <Widget>[
-            FlatButton(
-              child: Text(
-                'Cancel',
-                style: TextStyle(color: Colors.grey),
-              ),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            submit,
-          ],
+          actions: actions,
         ),
       );
     },

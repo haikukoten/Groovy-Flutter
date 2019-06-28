@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:Groovy/providers/auth_provider.dart';
 import 'package:Groovy/providers/budget_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
+import 'package:Groovy/screens/create_budget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
@@ -32,41 +33,33 @@ class BudgetListScreen extends StatefulWidget {
 class _BudgetListScreen extends State<BudgetListScreen> {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   Query _budgetQuery;
-  final currency = NumberFormat.simpleCurrency();
-  SharedPreferences preferences;
+  final _currency = NumberFormat.simpleCurrency();
+  SharedPreferences _preferences;
 
   StreamSubscription<Event> _onBudgetAddedSubscription;
   StreamSubscription<Event> _onBudgetChangedSubscription;
 
-  // Create budget key, controllers, and node
-  final _createBudgetFormKey = GlobalKey<FormState>();
-  var nameTextController = TextEditingController();
-  var amountTextController = TextEditingController();
-
-  String _name;
-  String _amount;
-  double initialDragAmount;
-  double finalDragAmount;
+  double _initialDragAmount;
+  double _finalDragAmount;
 
   @override
   void initState() {
     super.initState();
+
     getSavedThemePreference();
+
     _budgetQuery = _database.reference().child("budgets");
 
     _onBudgetAddedSubscription =
         _budgetQuery.onChildAdded.listen(_onEntryAdded);
     _onBudgetChangedSubscription =
         _budgetQuery.onChildChanged.listen(_onEntryChanged);
-
-    // Listen to amount text controller changes to control how many decimals are input
-    amountTextController.addListener(_onAmountChanged);
   }
 
   void getSavedThemePreference() async {
-    preferences = await SharedPreferences.getInstance();
+    _preferences = await SharedPreferences.getInstance();
     var uiProvider = Provider.of<UIProvider>(context);
-    uiProvider.isLightTheme = preferences.getBool("theme") ?? false;
+    uiProvider.isLightTheme = _preferences.getBool("theme") ?? false;
   }
 
   @override
@@ -113,7 +106,6 @@ class _BudgetListScreen extends State<BudgetListScreen> {
         });
       }
       ;
-
       // User is no longer shared with budget so remove it
     } else {
       if (!budget.sharedWith.contains(widget.user.email)) {
@@ -136,20 +128,6 @@ class _BudgetListScreen extends State<BudgetListScreen> {
         budgetProvider.budgetList.add(Budget.fromSnapshot(event.snapshot));
         // Sort budgets alphabetically
         budgetProvider.budgetList.sort((a, b) => a.name.compareTo(b.name));
-      });
-    }
-  }
-
-  _onAmountChanged() {
-    var decimalCount = ".".allMatches(amountTextController.text).length;
-    if (decimalCount > 1) {
-      print("Contains more than one decimal");
-      setState(() {
-        int decimalIndex = amountTextController.text.lastIndexOf(".");
-        amountTextController.text = amountTextController.text
-            .replaceFirst(RegExp('.'), '', decimalIndex);
-        amountTextController.selection =
-            TextSelection.collapsed(offset: amountTextController.text.length);
       });
     }
   }
@@ -186,9 +164,11 @@ class _BudgetListScreen extends State<BudgetListScreen> {
   Widget build(BuildContext context) {
     var uiProvider = Provider.of<UIProvider>(context);
     var budgetProvider = Provider.of<BudgetProvider>(context);
+    var authProvider = Provider.of<AuthProvider>(context);
 
     _signOut() async {
       try {
+        budgetProvider.budgetList = [];
         await widget.auth.signOut();
         widget.onSignedOut();
         setState(() {
@@ -197,133 +177,6 @@ class _BudgetListScreen extends State<BudgetListScreen> {
       } catch (e) {
         print(e);
       }
-    }
-
-    // Check if form is valid before creating budget
-    bool _validateAndSave() {
-      final form = _createBudgetFormKey.currentState;
-      if (form.validate()) {
-        form.save();
-        return true;
-      }
-      return false;
-    }
-
-    void _createBudget() {
-      if (_validateAndSave()) {
-        widget.auth.createBudget(_database, widget.user, _name, _amount);
-        Navigator.of(context).pop();
-      }
-    }
-
-    void _showCreateBudgetDialog() {
-      nameTextController.text = "";
-      amountTextController.text = "";
-      showInputDialog(
-          context,
-          uiProvider.isLightTheme ? Colors.white : Colors.black,
-          Text(
-            "Create Budget",
-            style: TextStyle(
-                color:
-                    uiProvider.isLightTheme ? Colors.black : Colors.grey[300],
-                fontWeight: FontWeight.w500),
-          ),
-          "",
-          FlatButton(
-              child: Text(
-                'Create',
-                style: TextStyle(
-                    color:
-                        uiProvider.isLightTheme ? Colors.black : Colors.white),
-              ),
-              onPressed: () async {
-                _createBudget();
-              }),
-          Form(
-            key: _createBudgetFormKey,
-            child: Column(
-              children: <Widget>[
-                TextFormField(
-                  style: TextStyle(
-                      color: uiProvider.isLightTheme
-                          ? Colors.grey[900]
-                          : Colors.white),
-                  cursorColor:
-                      uiProvider.isLightTheme ? Colors.black87 : Colors.grey,
-                  keyboardAppearance: uiProvider.isLightTheme
-                      ? Brightness.light
-                      : Brightness.dark,
-                  maxLines: 1,
-                  keyboardType: TextInputType.text,
-                  textCapitalization: TextCapitalization.words,
-                  autofocus: true,
-                  controller: nameTextController,
-                  decoration: InputDecoration(
-                      errorStyle: TextStyle(color: Colors.red[300]),
-                      hintText: 'Name',
-                      hintStyle: TextStyle(color: Colors.grey),
-                      focusedBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(
-                              color: uiProvider.isLightTheme
-                                  ? Colors.grey
-                                  : Colors.white)),
-                      enabledBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(
-                              color: uiProvider.isLightTheme
-                                  ? Colors.grey
-                                  : Colors.grey[200]))),
-                  validator: (value) {
-                    if (value.isEmpty) {
-                      return 'Name can\'t be empty';
-                    }
-                  },
-                  onSaved: (value) => _name = value,
-                ),
-                TextFormField(
-                  style: TextStyle(
-                      color: uiProvider.isLightTheme
-                          ? Colors.grey[900]
-                          : Colors.white),
-                  cursorColor:
-                      uiProvider.isLightTheme ? Colors.black87 : Colors.grey,
-                  keyboardAppearance: uiProvider.isLightTheme
-                      ? Brightness.light
-                      : Brightness.dark,
-                  maxLines: 1,
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  controller: amountTextController,
-                  decoration: InputDecoration(
-                      errorStyle: TextStyle(color: Colors.red[300]),
-                      hintText: '\$',
-                      hintStyle: TextStyle(color: Colors.grey),
-                      focusedBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(
-                              color: uiProvider.isLightTheme
-                                  ? Colors.grey
-                                  : Colors.white)),
-                      enabledBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(
-                              color: uiProvider.isLightTheme
-                                  ? Colors.grey
-                                  : Colors.grey[200]))),
-                  inputFormatters: [
-                    DecimalTextInputFormatter(decimalRange: 2),
-                    BlacklistingTextInputFormatter(RegExp('[\\,|\\-|\\ ]')),
-                  ],
-                  validator: (value) {
-                    if (value.isEmpty) {
-                      return 'Amount can\'t be empty';
-                    }
-                  },
-                  onFieldSubmitted: (value) {
-                    _createBudget();
-                  },
-                  onSaved: (value) => _amount = value,
-                ),
-              ],
-            ),
-          ));
     }
 
     void _deleteBudget(Budget budget) async {
@@ -362,14 +215,19 @@ class _BudgetListScreen extends State<BudgetListScreen> {
         // Swipe up to show 'Create Budget' dialog
         return GestureDetector(
           onPanStart: (details) {
-            initialDragAmount = details.globalPosition.dy;
+            _initialDragAmount = details.globalPosition.dy;
           },
           onPanUpdate: (details) {
-            finalDragAmount = details.globalPosition.dy - initialDragAmount;
+            _finalDragAmount = details.globalPosition.dy - _initialDragAmount;
           },
           onPanEnd: (details) {
-            if (finalDragAmount < 0) {
-              _showCreateBudgetDialog();
+            if (_finalDragAmount < 0) {
+              authProvider.auth = widget.auth;
+              Navigator.of(context).push(CupertinoPageRoute(
+                  fullscreenDialog: true,
+                  builder: (context) => CreateBudgetScreen(
+                        user: widget.user,
+                      )));
             }
           },
           child: Column(
@@ -495,7 +353,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                                       padding: EdgeInsets.only(
                                                           top: 5.0),
                                                       child: Text(
-                                                        "${currency.format(spent)} of ${currency.format(setAmount)}",
+                                                        "${_currency.format(spent)} of ${_currency.format(setAmount)}",
                                                         style: TextStyle(
                                                             color: uiProvider
                                                                     .isLightTheme
@@ -551,7 +409,6 @@ class _BudgetListScreen extends State<BudgetListScreen> {
         child: AnimatedBackground(),
       ),
       Scaffold(
-        resizeToAvoidBottomInset: false,
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
@@ -654,7 +511,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                     Padding(
                       padding: const EdgeInsets.only(top: 5.0),
                       child: Text(
-                        "${currency.format(totalAmountSpent(budgetProvider))}",
+                        "${_currency.format(totalAmountSpent(budgetProvider))}",
                         style: TextStyle(
                             fontSize: 22.0,
                             fontWeight: FontWeight.w700,
@@ -687,7 +544,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                     Padding(
                       padding: const EdgeInsets.only(top: 5.0),
                       child: Text(
-                        "${currency.format(totalAmountLeft(budgetProvider))}",
+                        "${_currency.format(totalAmountLeft(budgetProvider))}",
                         style: TextStyle(
                             fontSize: 22.0,
                             fontWeight: FontWeight.w700,
@@ -737,7 +594,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                 onPressed: () {
                                   setState(() {
                                     uiProvider.isLightTheme = false;
-                                    preferences.setBool(
+                                    _preferences.setBool(
                                         "theme", uiProvider.isLightTheme);
                                   });
                                   print("Dark");
@@ -762,7 +619,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                               onPressed: () {
                                 setState(() {
                                   uiProvider.isLightTheme = true;
-                                  preferences.setBool(
+                                  _preferences.setBool(
                                       "theme", uiProvider.isLightTheme);
                                 });
                                 print("Light");
@@ -839,7 +696,12 @@ class _BudgetListScreen extends State<BudgetListScreen> {
           ),
           elevation: 0,
           onPressed: () {
-            _showCreateBudgetDialog();
+            authProvider.auth = widget.auth;
+            Navigator.of(context).push(CupertinoPageRoute(
+                fullscreenDialog: true,
+                builder: (context) => CreateBudgetScreen(
+                      user: widget.user,
+                    )));
           },
         ),
       ),

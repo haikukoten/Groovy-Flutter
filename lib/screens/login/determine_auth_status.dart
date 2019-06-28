@@ -49,15 +49,6 @@ class _DetermineAuthStatusScreenState extends State<DetermineAuthStatusScreen> {
     });
   }
 
-  // void _onSocialLogin() {
-  //   var budgetModel = Provider.of<BudgetModel>(context);
-  //   setState(() {
-  //     _userEmail = budgetModel.userEmail;
-  //     authStatus = AuthStatus.LOGGED_IN;
-  //     print(_userEmail);
-  //   });
-  // }
-
   void _onSignedOut() {
     setState(() {
       authStatus = AuthStatus.NOT_LOGGED_IN;

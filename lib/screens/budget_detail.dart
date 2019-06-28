@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:Groovy/screens/edit_budget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:Groovy/providers/auth_provider.dart';
@@ -26,32 +27,42 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
   final currency = NumberFormat.simpleCurrency();
 
   final _addPurchaseFormKey = GlobalKey<FormState>();
-  var amountTextController = TextEditingController();
-  var noteTextController = TextEditingController();
+  var _purchaseAmountTextController = TextEditingController();
+  var _purchaseNoteTextController = TextEditingController();
 
   String _amount;
   String _note;
 
-  double initialDragAmount;
-  double finalDragAmount;
+  double _initialDragAmount;
+  double _finalDragAmount;
 
   @override
   void initState() {
     super.initState();
-    // Listen to amount text controller changes to control how many decimals are input
-    amountTextController.addListener(_onAmountChanged);
+    // Listen to text controller changes to control how many decimals are input
+    _purchaseAmountTextController.addListener(_onPurchaseAmountChanged);
   }
 
-  _onAmountChanged() {
-    var decimalCount = ".".allMatches(amountTextController.text).length;
+  @override
+  void dispose() {
+    // Clean up the controller when the widget is removed from the
+    // widget tree.
+    _purchaseAmountTextController.dispose();
+    _purchaseNoteTextController.dispose();
+    super.dispose();
+  }
+
+  _onPurchaseAmountChanged() {
+    var decimalCount =
+        ".".allMatches(_purchaseAmountTextController.text).length;
     if (decimalCount > 1) {
       print("Contains more than one decimal");
       setState(() {
-        int decimalIndex = amountTextController.text.lastIndexOf(".");
-        amountTextController.text = amountTextController.text
+        int decimalIndex = _purchaseAmountTextController.text.lastIndexOf(".");
+        _purchaseAmountTextController.text = _purchaseAmountTextController.text
             .replaceFirst(RegExp('.'), '', decimalIndex);
-        amountTextController.selection =
-            TextSelection.collapsed(offset: amountTextController.text.length);
+        _purchaseAmountTextController.selection = TextSelection.collapsed(
+            offset: _purchaseAmountTextController.text.length);
       });
     }
   }
@@ -62,8 +73,8 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
     var uiProvider = Provider.of<UIProvider>(context);
     var budgetProvider = Provider.of<BudgetProvider>(context);
 
-    // Check if form is valid before adding purchase
-    bool _validateAndSave() {
+    // Check if add purchase form is valid before adding purchase
+    bool _validateAndSavePurchase() {
       final form = _addPurchaseFormKey.currentState;
       if (form.validate()) {
         form.save();
@@ -216,7 +227,7 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
     // print("${dateFormat.format(DateTime.fromMillisecondsSinceEpoch(now))}");
 
     _addPurchase() async {
-      if (_validateAndSave()) {
+      if (_validateAndSavePurchase()) {
         FirebaseUser user = await authProvider.auth.getCurrentUser();
         var now = DateTime.now().millisecondsSinceEpoch;
         var history = [];
@@ -240,7 +251,7 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
     }
 
     _showAddPurchaseDialog() {
-      amountTextController.text = "";
+      _purchaseAmountTextController.text = "";
       showInputDialog(
           context,
           uiProvider.isLightTheme ? Colors.white : Colors.black,
@@ -252,16 +263,28 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
                 fontWeight: FontWeight.w500),
           ),
           "",
-          FlatButton(
+          [
+            FlatButton(
               child: Text(
-                'Add',
-                style: TextStyle(
-                    color:
-                        uiProvider.isLightTheme ? Colors.black : Colors.white),
+                'Cancel',
+                style: TextStyle(color: Colors.grey),
               ),
-              onPressed: () async {
-                _addPurchase();
-              }),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            FlatButton(
+                child: Text(
+                  'Add',
+                  style: TextStyle(
+                      color: uiProvider.isLightTheme
+                          ? Colors.black
+                          : Colors.white),
+                ),
+                onPressed: () async {
+                  _addPurchase();
+                })
+          ],
           Form(
             key: _addPurchaseFormKey,
             child: Column(
@@ -279,7 +302,7 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
                   autofocus: true,
                   maxLines: 1,
                   keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  controller: amountTextController,
+                  controller: _purchaseAmountTextController,
                   decoration: InputDecoration(
                       errorStyle: TextStyle(color: Colors.red[300]),
                       hintText: '\$',
@@ -321,7 +344,7 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
                   autofocus: true,
                   maxLines: 1,
                   keyboardType: TextInputType.text,
-                  controller: noteTextController,
+                  controller: _purchaseNoteTextController,
                   decoration: InputDecoration(
                       errorStyle: TextStyle(color: Colors.red[300]),
                       hintText: 'Note',
@@ -432,7 +455,12 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
                                   ? Colors.black
                                   : Colors.white)),
                       onPressed: () {
-                        print("Edit");
+                        Navigator.pop(context);
+                        Navigator.of(context).push(CupertinoPageRoute(
+                            fullscreenDialog: true,
+                            builder: (context) => EditBudgetScreen(
+                                  budget: budgetProvider.selectedBudget,
+                                )));
                       },
                     ),
                   )),
@@ -467,19 +495,19 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
 
     return GestureDetector(
         onPanStart: (details) {
-          initialDragAmount = details.globalPosition.dy;
+          _initialDragAmount = details.globalPosition.dy;
         },
         onPanUpdate: (details) {
-          finalDragAmount = details.globalPosition.dy - initialDragAmount;
+          _finalDragAmount = details.globalPosition.dy - _initialDragAmount;
         },
         onPanEnd: (details) {
           // Swipe up to show 'Add Purchase' dialog
-          if (finalDragAmount < 0) {
+          if (_finalDragAmount < 0) {
             _showAddPurchaseDialog();
           }
 
           // Swipe down to show modal menu
-          if (finalDragAmount > 0) {
+          if (_finalDragAmount > 0) {
             _showModalMenu();
           }
         },
