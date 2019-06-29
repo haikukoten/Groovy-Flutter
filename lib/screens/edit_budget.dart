@@ -25,6 +25,9 @@ class _EditBudgetScreen extends State<EditBudgetScreen> {
   FocusNode _editNameFocusNode = FocusNode();
   FocusNode _editAmountFocusNode = FocusNode();
 
+  double _initialDragAmount;
+  double _finalDragAmount;
+
   _onEditAmountChanged() {
     var decimalCount = ".".allMatches(_editAmountTextController.text).length;
     if (decimalCount > 1) {
@@ -84,22 +87,42 @@ class _EditBudgetScreen extends State<EditBudgetScreen> {
       }
     }
 
+    _resetBudget() async {
+      budgetProvider.selectedBudget.spent = 0;
+      budgetProvider.selectedBudget.left =
+          budgetProvider.selectedBudget.setAmount;
+      budgetProvider.selectedBudget.history = [];
+      budgetProvider.selectedBudget.userDate = [];
+      authProvider.auth.updateBudget(_database, budgetProvider.selectedBudget);
+      Navigator.of(context).pop();
+      Navigator.of(context).pop();
+    }
+
     Widget _showNameTextFormField() {
-      return TextFormField(
-          initialValue: budgetProvider.selectedBudget.name,
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(8.0, 8.0, 15.0, 8.0),
+        child: TextFormField(
+          initialValue: "${budgetProvider.selectedBudget.name}",
           style: TextStyle(
-              color: uiProvider.isLightTheme ? Colors.grey[900] : Colors.white),
+              color: uiProvider.isLightTheme ? Colors.grey[900] : Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold),
           cursorColor: uiProvider.isLightTheme ? Colors.black87 : Colors.grey,
           keyboardAppearance:
               uiProvider.isLightTheme ? Brightness.light : Brightness.dark,
           maxLines: 1,
           keyboardType: TextInputType.text,
+          textCapitalization: TextCapitalization.words,
           autofocus: true,
-          focusNode: _editNameFocusNode,
           decoration: InputDecoration(
               errorStyle: TextStyle(color: Colors.red[300]),
               hintText: 'Name',
               hintStyle: TextStyle(color: Colors.grey),
+              icon: Icon(
+                Icons.gesture,
+                color: Colors.grey[400],
+                size: 32,
+              ),
               focusedBorder: UnderlineInputBorder(
                   borderSide: BorderSide(
                       color: uiProvider.isLightTheme
@@ -116,55 +139,68 @@ class _EditBudgetScreen extends State<EditBudgetScreen> {
             }
           },
           onFieldSubmitted: (value) {
-            _editNameFocusNode.unfocus();
             FocusScope.of(context).requestFocus(_editAmountFocusNode);
           },
           onSaved: (value) {
-            setState(() {
-              budgetProvider.selectedBudget.name = value;
-            });
-          });
+            budgetProvider.selectedBudget.name = value;
+          },
+        ),
+      );
     }
 
     Widget _showAmountTextFormField() {
-      return TextFormField(
-          style: TextStyle(
-              color: uiProvider.isLightTheme ? Colors.grey[900] : Colors.white),
-          cursorColor: uiProvider.isLightTheme ? Colors.black87 : Colors.grey,
-          keyboardAppearance:
-              uiProvider.isLightTheme ? Brightness.light : Brightness.dark,
-          maxLines: 1,
-          keyboardType: TextInputType.numberWithOptions(decimal: true),
-          controller: _editAmountTextController,
-          focusNode: _editAmountFocusNode,
-          decoration: InputDecoration(
-              errorStyle: TextStyle(color: Colors.red[300]),
-              hintText: '\$',
-              hintStyle: TextStyle(color: Colors.grey),
-              focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(
-                      color: uiProvider.isLightTheme
-                          ? Colors.grey
-                          : Colors.white)),
-              enabledBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(
-                      color: uiProvider.isLightTheme
-                          ? Colors.grey
-                          : Colors.grey[200]))),
-          inputFormatters: [
-            DecimalTextInputFormatter(decimalRange: 2),
-            BlacklistingTextInputFormatter(RegExp('[\\,|\\-|\\ ]')),
-          ],
-          validator: (value) {
-            if (value.isEmpty) {
-              return 'Amount can\'t be empty';
-            }
-          },
-          onSaved: (value) {
-            setState(() {
-              budgetProvider.selectedBudget.setAmount = num.parse(value);
-            });
-          });
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(8.0, 8.0, 15.0, 8.0),
+        child: TextFormField(
+            style: TextStyle(
+                color:
+                    uiProvider.isLightTheme ? Colors.grey[900] : Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold),
+            cursorColor: uiProvider.isLightTheme ? Colors.black87 : Colors.grey,
+            keyboardAppearance:
+                uiProvider.isLightTheme ? Brightness.light : Brightness.dark,
+            maxLines: 1,
+            keyboardType: TextInputType.numberWithOptions(decimal: true),
+            controller: _editAmountTextController,
+            focusNode: _editAmountFocusNode,
+            decoration: InputDecoration(
+                errorStyle: TextStyle(color: Colors.red[300]),
+                hintText: 'Amount',
+                hintStyle: TextStyle(color: Colors.grey),
+                icon: Icon(
+                  Icons.attach_money,
+                  color: Colors.grey[400],
+                  size: 32,
+                ),
+                focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(
+                        color: uiProvider.isLightTheme
+                            ? Colors.grey
+                            : Colors.white)),
+                enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(
+                        color: uiProvider.isLightTheme
+                            ? Colors.grey
+                            : Colors.grey[200]))),
+            inputFormatters: [
+              DecimalTextInputFormatter(decimalRange: 2),
+              BlacklistingTextInputFormatter(RegExp('[\\,|\\-|\\ ]')),
+            ],
+            validator: (value) {
+              if (value.isEmpty) {
+                return 'Amount can\'t be empty';
+              }
+            },
+            onFieldSubmitted: (value) {
+              _editBudget();
+            },
+            onSaved: (value) {
+              setState(() {
+                budgetProvider.selectedBudget.setAmount = num.parse(value);
+              });
+            }),
+      );
     }
 
     Widget _showBody() {
@@ -182,39 +218,93 @@ class _EditBudgetScreen extends State<EditBudgetScreen> {
           ));
     }
 
-    return Scaffold(
-      backgroundColor:
-          uiProvider.isLightTheme ? Colors.white : Colors.grey[900],
-      appBar: AppBar(
-        title: Text(
-          "Edit ${budgetProvider.selectedBudget.name}",
-          style: TextStyle(color: Colors.white),
-        ),
-        backgroundColor: Colors.black,
-        textTheme: TextTheme(
-            title: TextStyle(
-                color: Colors.black87,
-                fontSize: 20.0,
-                fontWeight: FontWeight.w500)),
-        iconTheme: IconThemeData(color: Colors.white),
-        brightness: Brightness.dark,
-        elevation: 0.0,
-      ),
-      body: Stack(
-        children: <Widget>[
-          _showBody(),
-          showCircularProgress(context),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        elevation: 0,
-        backgroundColor: Colors.grey[300],
-        foregroundColor: Colors.black87,
-        child: Icon(Icons.check),
-        onPressed: () {
-          _editBudget();
+    // Swipe down to close
+    return GestureDetector(
+        onPanStart: (details) {
+          _initialDragAmount = details.globalPosition.dy;
         },
-      ),
-    );
+        onPanUpdate: (details) {
+          _finalDragAmount = details.globalPosition.dy - _initialDragAmount;
+        },
+        onPanEnd: (details) {
+          if (_finalDragAmount > 0) {
+            FocusScope.of(context).requestFocus(new FocusNode());
+            Navigator.pop(context);
+          }
+        },
+        child: Scaffold(
+          backgroundColor:
+              uiProvider.isLightTheme ? Colors.white : Colors.grey[900],
+          appBar: AppBar(
+            title: Text("Edit ${budgetProvider.selectedBudget.name}",
+                style: TextStyle(
+                    color:
+                        uiProvider.isLightTheme ? Colors.black : Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 20)),
+            backgroundColor:
+                uiProvider.isLightTheme ? Colors.white : Colors.black,
+            textTheme: TextTheme(
+                title: TextStyle(
+                    color: Colors.black87,
+                    fontSize: 20.0,
+                    fontWeight: FontWeight.w500)),
+            iconTheme: IconThemeData(
+                color: uiProvider.isLightTheme ? Colors.black : Colors.white),
+            brightness:
+                uiProvider.isLightTheme ? Brightness.light : Brightness.dark,
+            elevation: 0.0,
+            actions: <Widget>[
+              IconButton(
+                icon: Icon(Icons.restore),
+                tooltip: "Reset",
+                onPressed: () {
+                  showAlertDialog(
+                      context,
+                      "Reset ${budgetProvider.selectedBudget.name}?",
+                      "Resetting ${budgetProvider.selectedBudget.name} will remove all purchase history and set spending back to \$0.00",
+                      [
+                        FlatButton(
+                          child: Text(
+                            'Cancel',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                        ),
+                        FlatButton(
+                          child: Text(
+                            'Reset',
+                            style: TextStyle(
+                                color: uiProvider.isLightTheme
+                                    ? Colors.black
+                                    : Colors.white),
+                          ),
+                          onPressed: () {
+                            _resetBudget();
+                          },
+                        )
+                      ]);
+                },
+              )
+            ],
+          ),
+          body: Stack(
+            children: <Widget>[
+              _showBody(),
+              showCircularProgress(context),
+            ],
+          ),
+          floatingActionButton: FloatingActionButton(
+            elevation: 0,
+            backgroundColor: Colors.grey[300],
+            foregroundColor: Colors.black87,
+            child: Icon(Icons.check),
+            onPressed: () {
+              _editBudget();
+            },
+          ),
+        ));
   }
 }

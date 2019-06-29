@@ -84,7 +84,7 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
     }
 
     void _deleteBudget(Budget budget) async {
-      showAlertDialog(context, "Delete '${budget.name}'",
+      showAlertDialog(context, "Delete ${budget.name}",
           "Are you sure you want to delete this budget?", [
         FlatButton(
           child: Text(

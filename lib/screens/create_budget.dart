@@ -199,7 +199,7 @@ class _CreateBudgetScreen extends State<CreateBudgetScreen> {
           ));
     }
 
-    // Swipe up to show 'Create Budget' dialog
+    // Swipe down to close
     return GestureDetector(
       onPanStart: (details) {
         _initialDragAmount = details.globalPosition.dy;

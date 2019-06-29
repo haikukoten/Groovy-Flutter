@@ -13,6 +13,7 @@ import 'package:Groovy/services/auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:Groovy/models/budget.dart';
 import 'package:provider/provider.dart';
+import 'edit_budget.dart';
 import 'shared/swipe_actions/swipe_widget.dart';
 import 'shared/animated/background.dart';
 import 'shared/utilities.dart';
@@ -45,6 +46,9 @@ class _BudgetListScreen extends State<BudgetListScreen> {
   @override
   void initState() {
     super.initState();
+
+    _database.setPersistenceEnabled(true);
+    _database.setPersistenceCacheSizeBytes(10000000); // 10MB cache
 
     getSavedThemePreference();
 
@@ -180,7 +184,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
     }
 
     void _deleteBudget(Budget budget) async {
-      showAlertDialog(context, "Delete '${budget.name}'",
+      showAlertDialog(context, "Delete ${budget.name}",
           "Are you sure you want to delete this budget?", [
         FlatButton(
           child: Text(
@@ -255,7 +259,12 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                   color: Colors.white,
                                 ),
                                 onPress: () {
-                                  print("edit");
+                                  Navigator.of(context).push(CupertinoPageRoute(
+                                      fullscreenDialog: true,
+                                      builder: (context) => EditBudgetScreen(
+                                            budget: budgetProvider
+                                                .budgetList[index],
+                                          )));
                                 },
                                 backgroundColor: Colors.transparent),
                             new ActionItems(
