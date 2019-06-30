@@ -2,6 +2,9 @@ import 'dart:ui';
 import 'package:Groovy/screens/budget_detail/add_purchase.dart';
 import 'package:Groovy/screens/budget_detail/budget_history.dart';
 import 'package:Groovy/screens/budget_detail/edit_budget.dart';
+import 'package:Groovy/screens/budget_detail/share_budget.dart';
+import 'package:Groovy/services/auth.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:Groovy/providers/auth_provider.dart';
 import 'package:Groovy/providers/budget_provider.dart';
@@ -17,7 +20,10 @@ import '../shared/utilities.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 
 class BudgetDetailScreen extends StatefulWidget {
-  BudgetDetailScreen({Key key}) : super(key: key);
+  BudgetDetailScreen({Key key, this.user, this.auth}) : super(key: key);
+
+  final FirebaseUser user;
+  final BaseAuth auth;
 
   @override
   State<StatefulWidget> createState() => new _BudgetDetailScreen();
@@ -218,7 +224,14 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
                                   ? Colors.black
                                   : Colors.white)),
                       onPressed: () {
-                        print("Share");
+                        Navigator.pop(context);
+                        Navigator.of(context).push(CupertinoPageRoute(
+                            fullscreenDialog: true,
+                            builder: (context) => ShareBudgetScreen(
+                                  budget: budgetProvider.selectedBudget,
+                                  auth: widget.auth,
+                                  user: widget.user,
+                                )));
                       },
                     ),
                   )),

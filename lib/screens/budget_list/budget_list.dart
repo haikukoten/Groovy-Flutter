@@ -3,6 +3,8 @@ import 'dart:ui';
 import 'package:Groovy/providers/auth_provider.dart';
 import 'package:Groovy/providers/budget_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
+import 'package:Groovy/screens/budget_detail/budget_detail.dart';
+import 'package:Groovy/screens/budget_detail/share_budget.dart';
 import 'package:Groovy/screens/budget_list/create_budget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -269,12 +271,21 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                 backgroundColor: Colors.transparent),
                             new ActionItems(
                                 icon: new IconButton(
-                                  icon: new Icon(Icons.person_add),
+                                  icon: new Icon(Icons.account_circle),
                                   onPressed: () {},
                                   color: Colors.white,
                                 ),
                                 onPress: () {
-                                  print("share");
+                                  budgetProvider.selectedBudget =
+                                      budgetProvider.budgetList[index];
+                                  Navigator.of(context).push(CupertinoPageRoute(
+                                      fullscreenDialog: true,
+                                      builder: (context) => ShareBudgetScreen(
+                                            budget:
+                                                budgetProvider.selectedBudget,
+                                            user: widget.user,
+                                            auth: widget.auth,
+                                          )));
                                 },
                                 backgroundColor: Colors.transparent),
                             new ActionItems(
@@ -286,7 +297,6 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                 onPress: () {
                                   _deleteBudget(
                                       budgetProvider.budgetList[index]);
-                                  print("delete");
                                 },
                                 backgroundColor: Colors.transparent),
                           ],
@@ -337,8 +347,13 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                                     Provider.of<AuthProvider>(
                                                         context);
                                                 authProvider.auth = widget.auth;
-                                                Navigator.pushNamed(
-                                                    context, '/budgetDetail');
+                                                Navigator.of(context).push(
+                                                    MaterialPageRoute(
+                                                        builder: (context) =>
+                                                            BudgetDetailScreen(
+                                                              user: widget.user,
+                                                              auth: widget.auth,
+                                                            )));
                                               },
                                               child: Stack(
                                                 children: <Widget>[

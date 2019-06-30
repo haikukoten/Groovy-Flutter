@@ -23,7 +23,7 @@ abstract class BaseAuth {
 
   Future<String> signIn(String email, String password);
 
-  Future<String> signUp(String email, String password);
+  Future<String> signUp(String email, String password, String name);
 
   Future<FirebaseUser> getFirebaseUserFrom(dynamic authUser);
 
@@ -122,9 +122,12 @@ class Auth implements BaseAuth {
     return user.uid;
   }
 
-  Future<String> signUp(String email, String password) async {
+  Future<String> signUp(String email, String password, String name) async {
     FirebaseUser user = await _firebaseAuth.createUserWithEmailAndPassword(
         email: email, password: password);
+    UserUpdateInfo updateUser = UserUpdateInfo();
+    updateUser.displayName = "$name";
+    user.updateProfile(updateUser);
     return user.uid;
   }
 

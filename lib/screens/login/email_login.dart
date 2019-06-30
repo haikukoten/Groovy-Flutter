@@ -21,9 +21,11 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
   var _emailFocusNode = FocusNode();
   var _passwordFocusNode = FocusNode();
   var _passwordRecoveryEmailController = TextEditingController();
+  var _nameFocusNode = FocusNode();
 
   String _email;
   String _password;
+  String _name;
   String _errorMessage;
 
   // Initial form is login form
@@ -38,8 +40,9 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
   @override
   void dispose() {
     // Clean up the focus node when the Form is disposed.
-    _passwordFocusNode.dispose();
     _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
+    _nameFocusNode.dispose();
     // Clean up the controller when the widget is removed from the
     // widget tree.
     _emailTextController.dispose();
@@ -118,7 +121,10 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
                                 FlatButton(
                                   child: Text(
                                     'OK',
-                                    style: TextStyle(color: Colors.black),
+                                    style: TextStyle(
+                                        color: uiProvider.isLightTheme
+                                            ? Colors.black
+                                            : Colors.white),
                                   ),
                                   onPressed: () {
                                     Navigator.of(context).pop();
@@ -138,7 +144,10 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
                               FlatButton(
                                 child: Text(
                                   'OK',
-                                  style: TextStyle(color: Colors.black),
+                                  style: TextStyle(
+                                      color: uiProvider.isLightTheme
+                                          ? Colors.black
+                                          : Colors.white),
                                 ),
                                 onPressed: () {
                                   Navigator.of(context).pop();
@@ -179,7 +188,8 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
         FlatButton(
           child: Text(
             'OK',
-            style: TextStyle(color: Colors.black),
+            style: TextStyle(
+                color: uiProvider.isLightTheme ? Colors.black : Colors.white),
           ),
           onPressed: () {
             _changeFormToLogin();
@@ -204,7 +214,7 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
             Navigator.of(context)
                 .pushNamedAndRemoveUntil("/", (Route<dynamic> route) => false);
           } else {
-            userId = await authProvider.auth.signUp(_email, _password);
+            userId = await authProvider.auth.signUp(_email, _password, _name);
             authProvider.auth.sendEmailVerification();
             _showVerifyEmailSentDialog();
             print('Signed up user: $userId');
@@ -225,10 +235,11 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
             _errorMessage = e.message;
             showAlertDialog(context, "Yo", _errorMessage, [
               FlatButton(
-                child: Text(
-                  'OK',
-                  style: TextStyle(color: Colors.black),
-                ),
+                child: Text('OK',
+                    style: TextStyle(
+                        color: uiProvider.isLightTheme
+                            ? Colors.black
+                            : Colors.white)),
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
@@ -266,7 +277,12 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
           },
           onFieldSubmitted: (value) {
             _emailFocusNode.unfocus();
-            FocusScope.of(context).requestFocus(_passwordFocusNode);
+
+            if (_formMode == FormMode.LOGIN) {
+              FocusScope.of(context).requestFocus(_passwordFocusNode);
+            } else {
+              FocusScope.of(context).requestFocus(_nameFocusNode);
+            }
           },
           onSaved: (value) => _email = value,
         ),
@@ -301,6 +317,38 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
             }
           },
           onSaved: (value) => _password = value,
+        ),
+      );
+    }
+
+    Widget _showNameInput() {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(10.0, 15.0, 10.0, 0.0),
+        child: TextFormField(
+          cursorColor: Colors.black87,
+          keyboardAppearance: Brightness.dark,
+          maxLines: 1,
+          autofocus: false,
+          decoration: InputDecoration(
+              hintText: 'Name',
+              icon: Icon(
+                Icons.person,
+                color: Colors.grey[400],
+              )),
+          focusNode: _nameFocusNode,
+          onFieldSubmitted: (value) {
+            _nameFocusNode.unfocus();
+            FocusScope.of(context).requestFocus(_passwordFocusNode);
+          },
+          validator: (value) {
+            if (value.isEmpty) {
+              setState(() {
+                uiProvider.isLoading = false;
+              });
+              return 'Name can\'t be empty';
+            }
+          },
+          onSaved: (value) => _name = value,
         ),
       );
     }
@@ -348,6 +396,7 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
               shrinkWrap: true,
               children: <Widget>[
                 _showEmailInput(),
+                _formMode == FormMode.SIGNUP ? _showNameInput() : Container(),
                 _showPasswordInput(),
                 _showPasswordRecoveryButton(),
                 _showPrimaryButton(),

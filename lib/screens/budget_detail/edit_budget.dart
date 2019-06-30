@@ -81,6 +81,9 @@ class _EditBudgetScreen extends State<EditBudgetScreen> {
 
     _editBudget() async {
       if (_validateAndSaveEdit()) {
+        budgetProvider.selectedBudget.left =
+            budgetProvider.selectedBudget.setAmount -
+                budgetProvider.selectedBudget.spent;
         authProvider.auth
             .updateBudget(_database, budgetProvider.selectedBudget);
         Navigator.of(context).pop();

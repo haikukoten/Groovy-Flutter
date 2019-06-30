@@ -1,5 +1,6 @@
 import 'package:Groovy/screens/budget_detail/budget_history.dart';
 import 'package:Groovy/screens/budget_detail/edit_history.dart';
+import 'package:Groovy/screens/budget_detail/share_budget.dart';
 import 'package:Groovy/screens/budget_list/create_budget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -81,6 +82,14 @@ class MyApp extends StatelessWidget {
             settings,
             EditHistoryScreen(
               history: settings.arguments,
+            ),
+          );
+          break;
+        case '/shareBudget':
+          return _buildRoute(
+            settings,
+            ShareBudgetScreen(
+              budget: settings.arguments,
             ),
           );
           break;
