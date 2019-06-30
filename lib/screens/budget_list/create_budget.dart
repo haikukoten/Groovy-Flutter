@@ -6,7 +6,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'shared/utilities.dart';
+import '../shared/utilities.dart';
 
 class CreateBudgetScreen extends StatefulWidget {
   CreateBudgetScreen({Key key, this.user}) : super(key: key);
@@ -22,6 +22,7 @@ class _CreateBudgetScreen extends State<CreateBudgetScreen> {
   // Create budget key, controllers, and focus node
   final _createBudgetFormKey = GlobalKey<FormState>();
   TextEditingController _budgetAmountTextController = TextEditingController();
+  FocusNode _budgetNameFocusNode = FocusNode();
   FocusNode _budgetAmountFocusNode = FocusNode();
 
   String _name;
@@ -55,6 +56,7 @@ class _CreateBudgetScreen extends State<CreateBudgetScreen> {
   @override
   void dispose() {
     // Clean up the focus node when the Form is disposed.
+    _budgetNameFocusNode.dispose();
     _budgetAmountFocusNode.dispose();
     // Clean up the controller when the widget is removed from the
     // widget tree.
@@ -101,6 +103,7 @@ class _CreateBudgetScreen extends State<CreateBudgetScreen> {
           keyboardType: TextInputType.text,
           textCapitalization: TextCapitalization.words,
           autofocus: true,
+          focusNode: _budgetNameFocusNode,
           decoration: InputDecoration(
               errorStyle: TextStyle(color: Colors.red[300]),
               hintText: 'Name',
@@ -249,7 +252,11 @@ class _CreateBudgetScreen extends State<CreateBudgetScreen> {
           foregroundColor: Colors.black87,
           child: Icon(Icons.check),
           onPressed: () {
-            _createBudget();
+            if (_budgetNameFocusNode.hasFocus) {
+              FocusScope.of(context).requestFocus(_budgetAmountFocusNode);
+            } else {
+              _createBudget();
+            }
           },
         ),
       ),

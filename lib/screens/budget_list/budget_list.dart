@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:Groovy/providers/auth_provider.dart';
 import 'package:Groovy/providers/budget_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
-import 'package:Groovy/screens/create_budget.dart';
+import 'package:Groovy/screens/budget_list/create_budget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
@@ -13,10 +13,10 @@ import 'package:Groovy/services/auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:Groovy/models/budget.dart';
 import 'package:provider/provider.dart';
-import 'edit_budget.dart';
-import 'shared/swipe_actions/swipe_widget.dart';
-import 'shared/animated/background.dart';
-import 'shared/utilities.dart';
+import '../budget_detail/edit_budget.dart';
+import '../shared/swipe_actions/swipe_widget.dart';
+import '../shared/animated/background.dart';
+import '../shared/utilities.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class BudgetListScreen extends StatefulWidget {

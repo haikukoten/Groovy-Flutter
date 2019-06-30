@@ -1,4 +1,6 @@
-import 'package:Groovy/screens/create_budget.dart';
+import 'package:Groovy/screens/budget_detail/budget_history.dart';
+import 'package:Groovy/screens/budget_detail/edit_history.dart';
+import 'package:Groovy/screens/budget_list/create_budget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:Groovy/screens/login/email_login.dart';
@@ -6,8 +8,9 @@ import 'package:Groovy/services/auth.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'screens/login/determine_auth_status.dart';
-import 'screens/budget_detail.dart';
-import 'screens/edit_budget.dart';
+import 'screens/budget_detail/budget_detail.dart';
+import 'screens/budget_detail/edit_budget.dart';
+import 'screens/budget_detail/budget_history.dart';
 import 'providers/auth_provider.dart';
 import 'providers/ui_provider.dart';
 import 'providers/budget_provider.dart';
@@ -62,6 +65,22 @@ class MyApp extends StatelessWidget {
             settings,
             EditBudgetScreen(
               budget: settings.arguments,
+            ),
+          );
+          break;
+        case '/budgetHistory':
+          return _buildRoute(
+            settings,
+            BudgetHistoryScreen(
+              budget: settings.arguments,
+            ),
+          );
+          break;
+        case '/editHistory':
+          return _buildRoute(
+            settings,
+            EditHistoryScreen(
+              history: settings.arguments,
             ),
           );
           break;

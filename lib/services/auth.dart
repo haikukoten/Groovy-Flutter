@@ -46,17 +46,19 @@ class Auth implements BaseAuth {
   Future<void> createBudget(FirebaseDatabase database, FirebaseUser user,
       String name, String amount) async {
     if (name.length > 0) {
+      // Putting "none" values is not ideal, but unfortunately the old app design was made in such a way that it expects these values.
+      // In order for users of the old version of the app to continue without unexpected results, "none" values have been added.
       Budget budget = new Budget(
           createdBy: user.email,
-          hiddenFrom: [],
-          history: [],
+          hiddenFrom: ["none"],
+          history: ["none:none"],
           isShared: false,
           left: num.parse(amount),
           name: name,
           setAmount: num.parse(amount),
-          sharedWith: [],
+          sharedWith: ["none"],
           spent: 0,
-          userDate: []);
+          userDate: ["none:none"]);
       return await database
           .reference()
           .child("budgets")

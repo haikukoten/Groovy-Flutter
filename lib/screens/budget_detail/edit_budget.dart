@@ -7,7 +7,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'shared/utilities.dart';
+import '../shared/utilities.dart';
 
 class EditBudgetScreen extends StatefulWidget {
   EditBudgetScreen({Key key, this.budget}) : super(key: key);
@@ -69,7 +69,7 @@ class _EditBudgetScreen extends State<EditBudgetScreen> {
     var uiProvider = Provider.of<UIProvider>(context);
     var budgetProvider = Provider.of<BudgetProvider>(context);
 
-    // Check if edit form is valid before adding purchase
+    // Check if edit form is valid
     bool _validateAndSaveEdit() {
       final form = _editBudgetFormKey.currentState;
       if (form.validate()) {
@@ -91,8 +91,8 @@ class _EditBudgetScreen extends State<EditBudgetScreen> {
       budgetProvider.selectedBudget.spent = 0;
       budgetProvider.selectedBudget.left =
           budgetProvider.selectedBudget.setAmount;
-      budgetProvider.selectedBudget.history = [];
-      budgetProvider.selectedBudget.userDate = [];
+      budgetProvider.selectedBudget.history = ["none:none"];
+      budgetProvider.selectedBudget.userDate = ["none:none"];
       authProvider.auth.updateBudget(_database, budgetProvider.selectedBudget);
       Navigator.of(context).pop();
       Navigator.of(context).pop();
@@ -114,6 +114,7 @@ class _EditBudgetScreen extends State<EditBudgetScreen> {
           keyboardType: TextInputType.text,
           textCapitalization: TextCapitalization.words,
           autofocus: true,
+          focusNode: _editNameFocusNode,
           decoration: InputDecoration(
               errorStyle: TextStyle(color: Colors.red[300]),
               hintText: 'Name',
@@ -302,7 +303,11 @@ class _EditBudgetScreen extends State<EditBudgetScreen> {
             foregroundColor: Colors.black87,
             child: Icon(Icons.check),
             onPressed: () {
-              _editBudget();
+              if (_editNameFocusNode.hasFocus) {
+                FocusScope.of(context).requestFocus(_editAmountFocusNode);
+              } else {
+                _editBudget();
+              }
             },
           ),
         ));
