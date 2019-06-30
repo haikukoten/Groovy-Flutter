@@ -20,6 +20,7 @@ import '../shared/swipe_actions/swipe_widget.dart';
 import '../shared/animated/background.dart';
 import '../shared/utilities.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:overlay_support/overlay_support.dart';
 
 class BudgetListScreen extends StatefulWidget {
   BudgetListScreen({Key key, this.auth, this.user, this.onSignedOut})
@@ -78,6 +79,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
   _onEntryChanged(Event event) {
     Budget budget = Budget.fromSnapshot(event.snapshot);
     var budgetProvider = Provider.of<BudgetProvider>(context);
+    var uiProvider = Provider.of<UIProvider>(context);
 
     // Update budget if it was created by signed in user
     if (event.snapshot.value["createdBy"] == widget.user.email) {
@@ -105,11 +107,22 @@ class _BudgetListScreen extends State<BudgetListScreen> {
         });
       } catch (e) {
         // Budget just got shared with signed in user so add it to list
+
         setState(() {
           budgetProvider.budgetList.add(budget);
           // Sort budgets alphabetically
           budgetProvider.budgetList.sort((a, b) => a.name.compareTo(b.name));
         });
+
+        // If user is logged in, show alert that budget has been shared with user
+        showSimpleNotification(
+            Text(
+              "New shared budget",
+              style: TextStyle(
+                  color: uiProvider.isLightTheme ? Colors.black : Colors.white,
+                  fontWeight: FontWeight.bold),
+            ),
+            background: uiProvider.isLightTheme ? Colors.white : Colors.black);
       }
       ;
       // User is no longer shared with budget so remove it
@@ -364,6 +377,9 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                                             left: 30.0),
                                                     title: Text(
                                                       name,
+                                                      overflow:
+                                                          TextOverflow.fade,
+                                                      softWrap: false,
                                                       style: TextStyle(
                                                           fontSize: 28.0,
                                                           fontWeight:
@@ -378,6 +394,9 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                                           top: 5.0),
                                                       child: Text(
                                                         "${_currency.format(spent)} of ${_currency.format(setAmount)}",
+                                                        softWrap: false,
+                                                        overflow:
+                                                            TextOverflow.fade,
                                                         style: TextStyle(
                                                             color: uiProvider
                                                                     .isLightTheme
@@ -389,6 +408,29 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                                                 FontWeight.w700,
                                                             fontSize: 17.0),
                                                       ),
+                                                    ),
+                                                    trailing: Padding(
+                                                      padding:
+                                                          const EdgeInsets.only(
+                                                              right: 18.0),
+                                                      child: budgetProvider
+                                                              .budgetList[index]
+                                                              .isShared
+                                                          ? Icon(
+                                                              Icons
+                                                                  .account_circle,
+                                                              color: uiProvider
+                                                                      .isLightTheme
+                                                                  ? Colors
+                                                                      .grey[700]
+                                                                      .withOpacity(
+                                                                          0.4)
+                                                                  : Colors
+                                                                      .grey[100]
+                                                                      .withOpacity(
+                                                                          0.4),
+                                                            )
+                                                          : null,
                                                     ),
                                                   ),
                                                 ],

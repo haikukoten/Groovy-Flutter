@@ -81,7 +81,7 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
         }
 
         // Add new email
-        newSharedWith.add(_email);
+        newSharedWith.add(_email.toLowerCase());
 
         budgetProvider.selectedBudget.sharedWith = newSharedWith;
         widget.auth.updateBudget(_database, budgetProvider.selectedBudget);

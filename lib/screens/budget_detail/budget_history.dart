@@ -131,7 +131,7 @@ class _BudgetHistoryScreen extends State<BudgetHistoryScreen> {
                           budgetProvider.selectedBudget.userDate[index + 1];
                       String user = userDate.split(":")[0].split("@")[0];
                       int dateInMilliseconds =
-                          int.parse(userDate.split(":")[1]);
+                          num.parse(userDate.split(":")[1]).toInt();
                       String date = dateFormat
                           .format(DateTime.fromMillisecondsSinceEpoch(
                               dateInMilliseconds))

@@ -15,8 +15,13 @@ import 'screens/budget_detail/budget_history.dart';
 import 'providers/auth_provider.dart';
 import 'providers/ui_provider.dart';
 import 'providers/budget_provider.dart';
+import 'package:overlay_support/overlay_support.dart';
 
-void main() => runApp(MyApp());
+void main() {
+  kNotificationSlideDuration = const Duration(milliseconds: 500);
+  kNotificationDuration = const Duration(milliseconds: 3500);
+  runApp(MyApp());
+}
 
 class MyApp extends StatelessWidget {
   @override
@@ -110,12 +115,14 @@ class MyApp extends StatelessWidget {
           builder: (context) => UIProvider(),
         )
       ],
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        onGenerateRoute: _getRoute,
-        title: 'Groovy',
-        theme: ThemeData(
-            primaryColor: Colors.black, canvasColor: Colors.transparent),
+      child: OverlaySupport(
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          onGenerateRoute: _getRoute,
+          title: 'Groovy',
+          theme: ThemeData(
+              primaryColor: Colors.black, canvasColor: Colors.transparent),
+        ),
       ),
     );
   }
