@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import '../shared/utilities.dart';
 import '../shared/animated/background.dart';
 import '../shared/animated/wave.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 
 class ChooseLoginScreen extends StatefulWidget {
   ChooseLoginScreen({Key key, this.auth, this.onSignedIn}) : super(key: key);
@@ -91,8 +92,9 @@ class _ChooseLoginScreen extends State<ChooseLoginScreen> {
                               const EdgeInsets.fromLTRB(16.0, 16.0, 32.0, 16.0),
                           child: new Image.asset('assets/go-logo.png')),
                       new Expanded(
-                        child: new Text(
+                        child: new AutoSizeText(
                           "Sign in with Google",
+                          maxLines: 1,
                           style: new TextStyle(color: Colors.grey),
                         ),
                       )
@@ -136,8 +138,9 @@ class _ChooseLoginScreen extends State<ChooseLoginScreen> {
                                 16.0, 16.0, 32.0, 16.0),
                             child: new Image.asset('assets/fb-logo.png')),
                         new Expanded(
-                          child: new Text(
+                          child: new AutoSizeText(
                             "Sign in with Facebook",
+                            maxLines: 1,
                             style: new TextStyle(color: Colors.white),
                           ),
                         )
@@ -185,8 +188,9 @@ class _ChooseLoginScreen extends State<ChooseLoginScreen> {
                                 16.0, 16.0, 32.0, 16.0),
                             child: new Image.asset('assets/email-logo.png')),
                         new Expanded(
-                          child: new Text(
+                          child: new AutoSizeText(
                             "Sign in with email",
+                            maxLines: 1,
                             style: new TextStyle(color: Colors.white),
                           ),
                         )

@@ -3,6 +3,7 @@ import 'package:Groovy/models/budget.dart';
 import 'package:Groovy/providers/auth_provider.dart';
 import 'package:Groovy/providers/budget_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -240,7 +241,8 @@ class _EditBudgetScreen extends State<EditBudgetScreen> {
           backgroundColor:
               uiProvider.isLightTheme ? Colors.white : Colors.grey[900],
           appBar: AppBar(
-            title: Text("Edit ${budgetProvider.selectedBudget.name}",
+            title: AutoSizeText("Edit ${budgetProvider.selectedBudget.name}",
+                maxLines: 1,
                 style: TextStyle(
                     color:
                         uiProvider.isLightTheme ? Colors.black : Colors.white,

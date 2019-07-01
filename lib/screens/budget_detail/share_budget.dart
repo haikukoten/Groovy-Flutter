@@ -4,6 +4,7 @@ import 'package:Groovy/providers/budget_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
 import 'package:Groovy/screens/shared/swipe_actions/swipe_widget.dart';
 import 'package:Groovy/services/auth.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
@@ -83,7 +84,11 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
         // Add new email
         newSharedWith.add(_email.toLowerCase());
 
+        // Add display name of user sharing the budget for alert
+        var newSharedName = "${widget.user.displayName}";
+
         budgetProvider.selectedBudget.sharedWith = newSharedWith;
+        budgetProvider.selectedBudget.sharedName = newSharedName;
         widget.auth.updateBudget(_database, budgetProvider.selectedBudget);
       }
     }
@@ -101,7 +106,11 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
         budgetProvider.selectedBudget.isShared = false;
       }
 
+      // Remove display name of user that shared budget
+      var newSharedName = "none";
+
       budgetProvider.selectedBudget.sharedWith = newSharedWith;
+      budgetProvider.selectedBudget.sharedName = newSharedName;
       widget.auth.updateBudget(_database, budgetProvider.selectedBudget);
     }
 
@@ -290,8 +299,12 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
                                     onPress: () {
                                       showAlertDialog(
                                           context,
-                                          "Remove $email?",
-                                          "$email will no longer be able to see this budget",
+                                          email == widget.user.email
+                                              ? "Remove yourself?"
+                                              : "Remove $email?",
+                                          email == widget.user.email
+                                              ? "You will no longer be able to see this budget"
+                                              : "$email will no longer be able to see this budget",
                                           [
                                             FlatButton(
                                               child: Text(
@@ -351,8 +364,12 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
                                 onTap: () {
                                   showAlertDialog(
                                       context,
-                                      "Remove $email?",
-                                      "$email will no longer be able to see this budget",
+                                      email == widget.user.email
+                                          ? "Remove yourself?"
+                                          : "Remove $email?",
+                                      email == widget.user.email
+                                          ? "You will no longer be able to see this budget"
+                                          : "$email will no longer be able to see this budget",
                                       [
                                         FlatButton(
                                           child: Text(
@@ -440,7 +457,8 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
           backgroundColor:
               uiProvider.isLightTheme ? Colors.white : Colors.grey[900],
           appBar: AppBar(
-            title: Text("Share",
+            title: AutoSizeText("Share ${budgetProvider.selectedBudget.name}",
+                maxLines: 1,
                 style: TextStyle(
                     color:
                         uiProvider.isLightTheme ? Colors.black : Colors.white,

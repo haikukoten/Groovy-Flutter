@@ -21,6 +21,7 @@ import '../shared/animated/background.dart';
 import '../shared/utilities.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:overlay_support/overlay_support.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 
 class BudgetListScreen extends StatefulWidget {
   BudgetListScreen({Key key, this.auth, this.user, this.onSignedOut})
@@ -115,9 +116,12 @@ class _BudgetListScreen extends State<BudgetListScreen> {
         });
 
         // If user is logged in, show alert that budget has been shared with user
+        var notificationMessage = budget.sharedName == "none"
+            ? "New shared budget"
+            : "${budget.sharedName} shared a budget with you";
         showSimpleNotification(
             Text(
-              "New shared budget",
+              notificationMessage,
               style: TextStyle(
                   color: uiProvider.isLightTheme ? Colors.black : Colors.white,
                   fontWeight: FontWeight.bold),
@@ -274,6 +278,8 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                   color: Colors.white,
                                 ),
                                 onPress: () {
+                                  budgetProvider.selectedBudget =
+                                      budgetProvider.budgetList[index];
                                   Navigator.of(context).push(CupertinoPageRoute(
                                       fullscreenDialog: true,
                                       builder: (context) => EditBudgetScreen(
@@ -375,11 +381,9 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                                         EdgeInsets.only(
                                                             top: 11.0,
                                                             left: 30.0),
-                                                    title: Text(
+                                                    title: AutoSizeText(
                                                       name,
-                                                      overflow:
-                                                          TextOverflow.fade,
-                                                      softWrap: false,
+                                                      maxLines: 1,
                                                       style: TextStyle(
                                                           fontSize: 28.0,
                                                           fontWeight:
@@ -392,11 +396,9 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                                     subtitle: Padding(
                                                       padding: EdgeInsets.only(
                                                           top: 5.0),
-                                                      child: Text(
+                                                      child: AutoSizeText(
                                                         "${_currency.format(spent)} of ${_currency.format(setAmount)}",
-                                                        softWrap: false,
-                                                        overflow:
-                                                            TextOverflow.fade,
+                                                        maxLines: 1,
                                                         style: TextStyle(
                                                             color: uiProvider
                                                                     .isLightTheme
@@ -663,7 +665,6 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                     _preferences.setBool(
                                         "theme", uiProvider.isLightTheme);
                                   });
-                                  print("Dark");
                                 },
                               ),
                             ),
@@ -688,7 +689,6 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                   _preferences.setBool(
                                       "theme", uiProvider.isLightTheme);
                                 });
-                                print("Light");
                               },
                             ),
                           ),

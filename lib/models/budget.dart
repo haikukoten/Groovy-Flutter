@@ -10,6 +10,7 @@ class Budget {
   String name;
   num setAmount;
   List<dynamic> sharedWith;
+  String sharedName;
   num spent;
   List<dynamic> userDate;
 
@@ -22,6 +23,7 @@ class Budget {
     this.name,
     this.setAmount,
     this.sharedWith,
+    this.sharedName,
     this.spent,
     this.userDate,
   });
@@ -36,6 +38,7 @@ class Budget {
         name = snapshot.value["name"],
         setAmount = snapshot.value["setAmount"],
         sharedWith = snapshot.value["sharedWith"],
+        sharedName = snapshot.value["sharedName"] ?? "none",
         spent = snapshot.value["spent"],
         userDate = snapshot.value["userDate"];
 
@@ -49,6 +52,7 @@ class Budget {
       "name": name,
       "setAmount": setAmount,
       "sharedWith": sharedWith,
+      "sharedName": sharedName,
       "spent": spent,
       "userDate": userDate,
     };

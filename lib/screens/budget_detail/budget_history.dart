@@ -4,6 +4,7 @@ import 'package:Groovy/providers/auth_provider.dart';
 import 'package:Groovy/providers/budget_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
 import 'package:Groovy/screens/budget_detail/edit_history.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -319,7 +320,8 @@ class _BudgetHistoryScreen extends State<BudgetHistoryScreen> {
           backgroundColor:
               uiProvider.isLightTheme ? Colors.white : Colors.grey[900],
           appBar: AppBar(
-            title: Text("History",
+            title: AutoSizeText("${budgetProvider.selectedBudget.name} History",
+                maxLines: 1,
                 style: TextStyle(
                     color:
                         uiProvider.isLightTheme ? Colors.black : Colors.white,
