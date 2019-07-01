@@ -130,7 +130,10 @@ class _BudgetHistoryScreen extends State<BudgetHistoryScreen> {
                       note = note == "" ? "📝" : note;
                       String userDate =
                           budgetProvider.selectedBudget.userDate[index + 1];
-                      String user = userDate.split(":")[0].split("@")[0];
+                      // Show either email or display name for user
+                      String user = userDate.split(":")[0].contains("@")
+                          ? userDate.split(":")[0].split("@")[0]
+                          : userDate.split(":")[0];
                       int dateInMilliseconds =
                           num.parse(userDate.split(":")[1]).toInt();
                       String date = dateFormat

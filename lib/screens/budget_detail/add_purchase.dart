@@ -92,7 +92,7 @@ class _AddPurchaseScreen extends State<AddPurchaseScreen> {
         for (String userDateItem in budgetProvider.selectedBudget.userDate) {
           userDate.add(userDateItem);
         }
-        userDate.add("${user.email}:$now");
+        userDate.add("${user.displayName}:$now");
         budgetProvider.selectedBudget.spent += num.parse(_amount);
         budgetProvider.selectedBudget.left -= num.parse(_amount);
         budgetProvider.selectedBudget.history = history;
