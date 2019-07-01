@@ -15,6 +15,7 @@ import 'screens/budget_detail/budget_history.dart';
 import 'providers/auth_provider.dart';
 import 'providers/ui_provider.dart';
 import 'providers/budget_provider.dart';
+import 'providers/storage_provider.dart';
 import 'package:overlay_support/overlay_support.dart';
 
 void main() {
@@ -113,6 +114,9 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider<UIProvider>(
           builder: (context) => UIProvider(),
+        ),
+        ChangeNotifierProvider<StorageProvider>(
+          builder: (context) => StorageProvider(),
         )
       ],
       child: OverlaySupport(

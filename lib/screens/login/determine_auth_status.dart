@@ -60,7 +60,9 @@ class _DetermineAuthStatusScreenState extends State<DetermineAuthStatusScreen> {
     return Scaffold(
       body: Container(
         alignment: Alignment.center,
-        child: CircularProgressIndicator(),
+        child: CircularProgressIndicator(
+            valueColor: new AlwaysStoppedAnimation<Color>(
+                Colors.black.withOpacity(0.5))),
       ),
     );
   }

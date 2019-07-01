@@ -15,6 +15,7 @@ class Budget {
   List<dynamic> userDate;
 
   Budget({
+    this.key,
     this.createdBy,
     this.hiddenFrom,
     this.history,
@@ -42,8 +43,23 @@ class Budget {
         spent = snapshot.value["spent"],
         userDate = snapshot.value["userDate"];
 
+  Budget.fromJson(Map<String, dynamic> json)
+      : key = json['key'] as String,
+        createdBy = json['createdBy'] as String,
+        hiddenFrom = json['hiddenFrom'] as List<dynamic>,
+        history = json['history'] as List<dynamic>,
+        isShared = json['isShared'] as bool,
+        left = json['left'] as num,
+        name = json['name'] as String,
+        setAmount = json['setAmount'] as num,
+        sharedWith = json['sharedWith'] as List<dynamic>,
+        sharedName = json['sharedName'] as String,
+        spent = json['spent'] as num,
+        userDate = json['userDate'] as List<dynamic>;
+
   toJson() {
     return {
+      "key": key,
       "createdBy": createdBy,
       "hiddenFrom": hiddenFrom,
       "history": history,
