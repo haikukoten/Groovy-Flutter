@@ -22,6 +22,7 @@ dependencies:
   firebase_core: ^0.4.0+3
   firebase_auth: ^0.11.1+6
   firebase_database: ^3.0.2
+  firebase_messaging: ^5.0.4
   google_sign_in: ^4.0.2
   flutter_facebook_login: ^2.0.1
   provider: ^3.0.0
@@ -29,7 +30,6 @@ dependencies:
   intl: ^0.15.8
   shared_preferences: ^0.5.3+1
   percent_indicator: ^2.1.0
-  vibrate: ^0.0.4
   material_design_icons_flutter: 3.2.3695
   email_validator: '^1.0.0'
   overlay_support: '^1.0.0'

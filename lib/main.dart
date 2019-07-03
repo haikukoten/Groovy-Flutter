@@ -117,7 +117,7 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider<StorageProvider>(
           builder: (context) => StorageProvider(),
-        )
+        ),
       ],
       child: OverlaySupport(
         child: MaterialApp(

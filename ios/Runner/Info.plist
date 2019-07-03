@@ -43,7 +43,6 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
-	<!-- Google Sign-in Section -->
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -61,14 +60,12 @@
 			</array>
 		</dict>
 	</array>
-	<!-- End of the Google Sign-in Section -->
-
-	<!-- Facebook Sign-in Section -->
 	<key>FacebookAppID</key>
 	<string>1559827117417948</string>
 	<key>FacebookDisplayName</key>
 	<string>Groovy</string>
-
+	<key>FirebaseAppDelegateProxyEnabled</key>
+	<false/>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>fbapi</string>
@@ -76,6 +73,5 @@
 		<string>fbauth2</string>
 		<string>fbshareextension</string>
 	</array>
-	<!-- End of the Facebook Sign-in Section -->
 </dict>
 </plist>

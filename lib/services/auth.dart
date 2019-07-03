@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'package:firebase_database/firebase_database.dart';
-
 import '../models/budget.dart';
+import '../models/user.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_login/flutter_facebook_login.dart';
 
-// Add Android release keys for Firebase & Facebook
+// TODO: Add Android release keys for Firebase & Facebook
 // Test that canceling Google login works in release mode
 
 abstract class BaseAuth {
@@ -16,6 +16,10 @@ abstract class BaseAuth {
   Future<void> updateBudget(FirebaseDatabase database, Budget budget);
 
   Future<void> deleteBudget(FirebaseDatabase database, Budget budget);
+
+  Future<void> createUser(FirebaseDatabase database, User user);
+
+  Future<void> updateUser(FirebaseDatabase database, User user);
 
   Future<FirebaseUser> googleSignIn();
 
@@ -83,6 +87,18 @@ class Auth implements BaseAuth {
         .child("budgets")
         .child(budget.key)
         .remove();
+  }
+
+  Future<void> createUser(FirebaseDatabase database, User user) async {
+    return await database.reference().child("users").push().set(user.toJson());
+  }
+
+  Future<void> updateUser(FirebaseDatabase database, User user) async {
+    return await database
+        .reference()
+        .child("users")
+        .child(user.key)
+        .set(user.toJson());
   }
 
   Future<FirebaseUser> googleSignIn() async {
@@ -171,7 +187,7 @@ class Auth implements BaseAuth {
     if (await _facebookLogin.isLoggedIn) {
       await _facebookLogin.logOut();
     }
-    return _firebaseAuth.signOut();
+    return await _firebaseAuth.signOut();
   }
 
   Future<bool> isEmailVerified() async {

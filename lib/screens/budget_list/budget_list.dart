@@ -8,12 +8,13 @@ import 'package:Groovy/screens/budget_detail/budget_detail.dart';
 import 'package:Groovy/screens/budget_detail/share_budget.dart';
 import 'package:Groovy/screens/budget_list/create_budget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import "package:intl/intl.dart";
 import 'package:flutter/material.dart';
 import 'package:Groovy/services/auth.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:Groovy/models/budget.dart';
 import 'package:provider/provider.dart';
 import '../budget_detail/edit_budget.dart';
@@ -23,7 +24,6 @@ import '../shared/utilities.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:overlay_support/overlay_support.dart';
 import 'package:auto_size_text/auto_size_text.dart';
-import 'package:localstorage/localstorage.dart';
 
 class BudgetListScreen extends StatefulWidget {
   BudgetListScreen({Key key, this.auth, this.user, this.onSignedOut})
@@ -39,6 +39,7 @@ class BudgetListScreen extends StatefulWidget {
 
 class _BudgetListScreen extends State<BudgetListScreen> {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
+  FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
   Query _budgetQuery;
   final _currency = NumberFormat.simpleCurrency();
   SharedPreferences _preferences;
@@ -66,13 +67,42 @@ class _BudgetListScreen extends State<BudgetListScreen> {
         _budgetQuery.onChildAdded.listen(_onEntryAdded);
     _onBudgetChangedSubscription =
         _budgetQuery.onChildChanged.listen(_onEntryChanged);
+
+    // Handle FCM
+    fcmListeners();
   }
 
   @override
   void dispose() {
     _onBudgetAddedSubscription.cancel();
     _onBudgetChangedSubscription.cancel();
+
     super.dispose();
+  }
+
+  void fcmListeners() {
+    // if (Platform.isIOS) _iOSRequestNotificationPermission();
+
+    // _firebaseMessaging.configure(
+    //   onMessage: (Map<String, dynamic> message) async {
+    //     print('on message $message');
+    //   },
+    //   onResume: (Map<String, dynamic> message) async {
+    //     print('on resume $message');
+    //   },
+    //   onLaunch: (Map<String, dynamic> message) async {
+    //     print('on launch $message');
+    //   },
+    // );
+  }
+
+  void _iOSRequestNotificationPermission() {
+    _firebaseMessaging.requestNotificationPermissions(
+        IosNotificationSettings(sound: true, badge: true, alert: true));
+    _firebaseMessaging.onIosSettingsRegistered
+        .listen((IosNotificationSettings settings) {
+      print("Settings registered: $settings");
+    });
   }
 
   void _getSavedThemePreference() async {
@@ -226,31 +256,34 @@ class _BudgetListScreen extends State<BudgetListScreen> {
     return totalLeft;
   }
 
+  _signOut() async {
+    Navigator.pop(context);
+    Navigator.pop(context);
+    var budgetProvider = Provider.of<BudgetProvider>(context);
+    var storageProvider = Provider.of<StorageProvider>(context);
+    var uiProvider = Provider.of<UIProvider>(context);
+
+    try {
+      uiProvider.isLoading = false;
+      budgetProvider.budgetList = [];
+      budgetProvider.notAcceptedSharedBudgets = [];
+      // save empty not accepted shared budgets to storage
+      storageProvider.saveToStorage(budgetProvider,
+          budgetProvider.notAcceptedSharedBudgets, 'notAcceptedSharedBudgets');
+      await widget.auth.signOut().then((_) {
+        widget.onSignedOut();
+      });
+    } catch (e) {
+      print(e);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     var uiProvider = Provider.of<UIProvider>(context);
     var budgetProvider = Provider.of<BudgetProvider>(context);
     var authProvider = Provider.of<AuthProvider>(context);
     var storageProvider = Provider.of<StorageProvider>(context);
-
-    _signOut() async {
-      try {
-        budgetProvider.budgetList = [];
-        budgetProvider.notAcceptedSharedBudgets = [];
-        // save empty not accepted shared budgets to storage
-        storageProvider.saveToStorage(
-            budgetProvider,
-            budgetProvider.notAcceptedSharedBudgets,
-            'notAcceptedSharedBudgets');
-        await widget.auth.signOut();
-        widget.onSignedOut();
-        setState(() {
-          uiProvider.isLoading = false;
-        });
-      } catch (e) {
-        print(e);
-      }
-    }
 
     void _deleteBudget(Budget budget) async {
       showAlertDialog(context, "Delete ${budget.name}",
@@ -1068,7 +1101,6 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                 uiProvider.isLoading = true;
                               });
                               _signOut();
-                              Navigator.of(context).pop();
                             },
                           )
                         ]);
