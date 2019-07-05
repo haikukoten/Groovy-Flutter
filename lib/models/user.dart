@@ -4,30 +4,34 @@ class User {
   String key;
   String name;
   String email;
-  String token;
+  List<dynamic> tokenPlatform;
   bool isPaid;
 
   User({
     this.key,
     this.name,
     this.email,
-    this.token,
+    this.tokenPlatform,
     this.isPaid,
   });
 
-  User.fromSnapshot(DataSnapshot snapshot, String key)
-      : key = key,
+  User.fromSnapshot(DataSnapshot snapshot)
+      : key = snapshot.key,
         name = snapshot.value["name"],
         email = snapshot.value["email"],
-        token = snapshot.value["token"],
+        tokenPlatform = snapshot.value["tokenPlatform"],
         isPaid = snapshot.value["isPaid"];
 
   toJson() {
     return {
       "name": name,
       "email": email,
-      "token": token,
+      "tokenPlatform": tokenPlatform,
       "isPaid": isPaid,
     };
+  }
+
+  String toString() {
+    return "name: $name, email: $email, tokenPlatform: $tokenPlatform, isPaid: $isPaid";
   }
 }

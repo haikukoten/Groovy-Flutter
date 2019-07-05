@@ -48,12 +48,11 @@ class _DetermineAuthStatusScreenState extends State<DetermineAuthStatusScreen> {
       setState(() {
         _user = user;
       });
+      createUser();
     });
     setState(() {
       authStatus = AuthStatus.LOGGED_IN;
     });
-
-    _performAnyUpdatesToCurrentUserOnFirebase();
   }
 
   void _onSignedOut() {
@@ -63,49 +62,21 @@ class _DetermineAuthStatusScreenState extends State<DetermineAuthStatusScreen> {
     });
   }
 
-  _performAnyUpdatesToCurrentUserOnFirebase() async {
+  createUser() async {
     var token = await _firebaseMessaging.getToken();
-    await widget.auth.getCurrentUser().then((loggedInUser) async {
-      User user;
-      await _database
-          .reference()
-          .child("users")
-          .orderByChild("email")
-          .equalTo(loggedInUser.email)
-          .once()
-          .then((DataSnapshot snapshot) async {
-        if (snapshot.value != null) {
-          for (var value in (snapshot.value as Map).values) {
-            user = User();
-            user.email = value["email"];
-            user.name = value["name"];
-            user.isPaid = value["isPaid"];
-            user.token = value["token"];
-          }
-        }
+    var platform = Theme.of(context).platform == TargetPlatform.android
+        ? "android"
+        : "iOS";
 
-        // User exists, update if token is updated
-        if (user != null) {
-          if (user.token != token) {
-            user.token = token;
-            print(user.email);
-            await widget.auth.updateUser(_database, user);
-          }
-
-          // User doesn't exist, create user
-        } else {
-          print(loggedInUser.displayName);
-          print(loggedInUser.email);
-          await widget.auth.createUser(
-              _database,
-              User(
-                  email: loggedInUser.email,
-                  name: loggedInUser.displayName,
-                  isPaid: false,
-                  token: token));
-        }
-      });
-    });
+    List<String> tokenPlatform = [];
+    tokenPlatform.add("$token&&platform===>$platform");
+    widget.auth.createUser(
+        _database,
+        User(
+            email: _user.email,
+            name: _user.displayName,
+            isPaid: false,
+            tokenPlatform: tokenPlatform));
   }
 
   Widget _buildWaitingScreen() {

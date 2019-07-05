@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:Groovy/models/user.dart';
 import 'package:Groovy/providers/auth_provider.dart';
 import 'package:Groovy/providers/budget_provider.dart';
 import 'package:Groovy/providers/storage_provider.dart';
@@ -41,16 +42,23 @@ class _BudgetListScreen extends State<BudgetListScreen> {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
   Query _budgetQuery;
+  Query _usersQuery;
   final _currency = NumberFormat.simpleCurrency();
   SharedPreferences _preferences;
 
   StreamSubscription<Event> _onBudgetAddedSubscription;
   StreamSubscription<Event> _onBudgetChangedSubscription;
 
+  StreamSubscription<Event> _onUserAddedSubscription;
+  StreamSubscription<Event> _onUserChangedSubscription;
+
   double _initialDragAmount;
   double _finalDragAmount;
 
   bool _initialized = false;
+  User currentUser = User();
+  List<User> users = [];
+  List<String> tokenPlatorms = [];
 
   @override
   void initState() {
@@ -62,11 +70,16 @@ class _BudgetListScreen extends State<BudgetListScreen> {
     _getSavedThemePreference();
 
     _budgetQuery = _database.reference().child("budgets");
+    _usersQuery = _database.reference().child("users");
 
     _onBudgetAddedSubscription =
         _budgetQuery.onChildAdded.listen(_onEntryAdded);
     _onBudgetChangedSubscription =
         _budgetQuery.onChildChanged.listen(_onEntryChanged);
+
+    _onUserAddedSubscription = _usersQuery.onChildAdded.listen(_onUserAdded);
+    _onUserChangedSubscription =
+        _usersQuery.onChildChanged.listen(_onUserChanged);
 
     // Handle FCM
     fcmListeners();
@@ -76,7 +89,8 @@ class _BudgetListScreen extends State<BudgetListScreen> {
   void dispose() {
     _onBudgetAddedSubscription.cancel();
     _onBudgetChangedSubscription.cancel();
-
+    _onUserAddedSubscription.cancel();
+    _onUserChangedSubscription.cancel();
     super.dispose();
   }
 
@@ -196,7 +210,6 @@ class _BudgetListScreen extends State<BudgetListScreen> {
           }
         }
       }
-      ;
       // User is no longer shared with budget so remove it
     } else {
       if (!budget.sharedWith.contains(widget.user.email)) {
@@ -228,6 +241,44 @@ class _BudgetListScreen extends State<BudgetListScreen> {
     }
   }
 
+  _onUserAdded(Event event) {
+    users.add(User.fromSnapshot(event.snapshot));
+    _updateUserOnFirebase();
+  }
+
+  _onUserChanged(Event event) {
+    if (event.snapshot.value["email"] == widget.user.email) {
+      currentUser = User.fromSnapshot(event.snapshot);
+    }
+  }
+
+  _updateUserOnFirebase() {
+    List<User> duplicateUsers = [];
+
+    users.forEach((user) {
+      if (user.email == widget.user.email) {
+        currentUser = user;
+        duplicateUsers.add(user);
+        if (!tokenPlatorms.contains(user.tokenPlatform.first)) {
+          tokenPlatorms.add(user.tokenPlatform.first);
+        }
+      }
+    });
+
+    if (duplicateUsers.length == 2) {
+      duplicateUsers[0].tokenPlatform = tokenPlatorms;
+
+      users.forEach((user) {
+        if (user.key == duplicateUsers[1].key) {
+          widget.auth.deleteUser(_database, user);
+        }
+      });
+
+      currentUser = duplicateUsers[0];
+      widget.auth.updateUser(_database, duplicateUsers[0]);
+    }
+  }
+
   num totalAmountSpent(BudgetProvider budgetProvider) {
     num totalSpent = 0;
     for (int i = 0; i < budgetProvider.budgetList.length; i++) {
@@ -256,7 +307,34 @@ class _BudgetListScreen extends State<BudgetListScreen> {
     return totalLeft;
   }
 
-  _signOut() async {
+  _removeUserToken() async {
+    String currentTokenPlatform;
+    var token = await _firebaseMessaging.getToken();
+    var platform = Theme.of(context).platform == TargetPlatform.android
+        ? "android"
+        : "iOS";
+    currentTokenPlatform = "$token&&platform===>$platform";
+
+    var tokenPlatforms = [];
+    currentUser.tokenPlatform
+        .forEach((tokenPlatform) => tokenPlatforms.add(tokenPlatform));
+
+    if (currentUser.tokenPlatform.contains(currentTokenPlatform)) {
+      print(currentUser.toString());
+      tokenPlatforms.remove(currentTokenPlatform);
+      currentUser.tokenPlatform = tokenPlatforms;
+      if (currentUser.tokenPlatform.isNotEmpty) {
+        widget.auth.updateUser(_database, currentUser);
+      } else {
+        widget.auth.deleteUser(_database, currentUser);
+      }
+    }
+
+    currentUser = User();
+  }
+
+  _signOut() {
+    _removeUserToken();
     Navigator.pop(context);
     Navigator.pop(context);
     var budgetProvider = Provider.of<BudgetProvider>(context);
@@ -267,12 +345,13 @@ class _BudgetListScreen extends State<BudgetListScreen> {
       uiProvider.isLoading = false;
       budgetProvider.budgetList = [];
       budgetProvider.notAcceptedSharedBudgets = [];
+      tokenPlatorms = [];
+      users = [];
       // save empty not accepted shared budgets to storage
       storageProvider.saveToStorage(budgetProvider,
           budgetProvider.notAcceptedSharedBudgets, 'notAcceptedSharedBudgets');
-      await widget.auth.signOut().then((_) {
-        widget.onSignedOut();
-      });
+      widget.auth.signOut();
+      widget.onSignedOut();
     } catch (e) {
       print(e);
     }

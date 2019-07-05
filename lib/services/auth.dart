@@ -21,6 +21,8 @@ abstract class BaseAuth {
 
   Future<void> updateUser(FirebaseDatabase database, User user);
 
+  Future<void> deleteUser(FirebaseDatabase database, User user);
+
   Future<FirebaseUser> googleSignIn();
 
   Future<dynamic> facebookSignIn();
@@ -99,6 +101,10 @@ class Auth implements BaseAuth {
         .child("users")
         .child(user.key)
         .set(user.toJson());
+  }
+
+  Future<void> deleteUser(FirebaseDatabase database, User user) async {
+    return await database.reference().child("users").child(user.key).remove();
   }
 
   Future<FirebaseUser> googleSignIn() async {
