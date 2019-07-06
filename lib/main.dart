@@ -1,7 +1,9 @@
+import 'package:Groovy/providers/user_provider.dart';
 import 'package:Groovy/screens/budget_detail/budget_history.dart';
 import 'package:Groovy/screens/budget_detail/edit_history.dart';
 import 'package:Groovy/screens/budget_detail/share_budget.dart';
 import 'package:Groovy/screens/budget_list/create_budget.dart';
+import 'package:Groovy/screens/request_notifications.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:Groovy/screens/login/email_login.dart';
@@ -17,6 +19,9 @@ import 'providers/ui_provider.dart';
 import 'providers/budget_provider.dart';
 import 'providers/storage_provider.dart';
 import 'package:overlay_support/overlay_support.dart';
+
+// TODO: Update Android nav bar colors
+// TODO: Adjust detail screen circular progress radius for smaller displays?
 
 void main() {
   kNotificationSlideDuration = const Duration(milliseconds: 500);
@@ -99,6 +104,12 @@ class MyApp extends StatelessWidget {
             ),
           );
           break;
+        case '/requestNotifications':
+          return _buildRoute(
+            settings,
+            RequestNotificationsScreen(),
+          );
+          break;
         default:
           return null;
       }
@@ -108,6 +119,9 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider<BudgetProvider>(
           builder: (context) => BudgetProvider(),
+        ),
+        ChangeNotifierProvider<UserProvider>(
+          builder: (context) => UserProvider(),
         ),
         ChangeNotifierProvider<AuthProvider>(
           builder: (context) => AuthProvider(),

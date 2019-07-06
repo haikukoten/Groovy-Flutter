@@ -2,8 +2,10 @@ import 'dart:ui';
 import 'package:Groovy/models/budget.dart';
 import 'package:Groovy/providers/budget_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
+import 'package:Groovy/providers/user_provider.dart';
 import 'package:Groovy/screens/shared/swipe_actions/swipe_widget.dart';
 import 'package:Groovy/services/auth.dart';
+import 'package:Groovy/services/notification.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -31,6 +33,7 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
   TextEditingController _shareBudgetEmailTextController =
       TextEditingController();
   FocusNode _shareBudgetFocusNode = FocusNode();
+  SendNotification notification = SendNotification();
 
   double _initialDragAmount;
   double _finalDragAmount;
@@ -56,6 +59,39 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
   Widget build(BuildContext context) {
     var uiProvider = Provider.of<UIProvider>(context);
     var budgetProvider = Provider.of<BudgetProvider>(context);
+    var userProvider = Provider.of<UserProvider>(context);
+
+    _sendNotification() {
+      userProvider.userList.forEach((user) {
+        if (user.email.toLowerCase() == _email.toLowerCase()) {
+          print(user.toString());
+          user.tokenPlatform.forEach((tokenPlatform) {
+            Map<String, Object> data;
+            var token = tokenPlatform.split("&&platform===>")[0];
+            var platform = tokenPlatform.split("&&platform===>")[1];
+            if (platform == "android") {
+              data = notification.createData(
+                  "",
+                  "${widget.user.displayName} shared a budget with you 💸",
+                  {
+                    "click_action": "FLUTTER_NOTIFICATION_CLICK",
+                  },
+                  token);
+            }
+            // iOS
+            else {
+              data = notification.createData(
+                  "",
+                  "${widget.user.displayName} shared a budget with you 💸",
+                  {},
+                  token);
+            }
+
+            notification.send(data);
+          });
+        }
+      });
+    }
 
     // Check if share form is valid
     bool _validateAndSaveShare() {
@@ -90,6 +126,9 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
         budgetProvider.selectedBudget.sharedWith = newSharedWith;
         budgetProvider.selectedBudget.sharedName = newSharedName;
         widget.auth.updateBudget(_database, budgetProvider.selectedBudget);
+
+        // send notification
+        _sendNotification();
       }
     }
 

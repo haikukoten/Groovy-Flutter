@@ -9,7 +9,7 @@ class StorageProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  saveToStorage(dynamic provider, List list, String key) {
+  saveItemToStorage(dynamic provider, List list, String key) {
     _storage.setItem(key, provider.toJSONEncodable(list));
     notifyListeners();
   }

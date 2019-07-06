@@ -1,13 +1,16 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 import 'package:Groovy/models/user.dart';
 import 'package:Groovy/providers/auth_provider.dart';
 import 'package:Groovy/providers/budget_provider.dart';
 import 'package:Groovy/providers/storage_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
+import 'package:Groovy/providers/user_provider.dart';
 import 'package:Groovy/screens/budget_detail/budget_detail.dart';
 import 'package:Groovy/screens/budget_detail/share_budget.dart';
 import 'package:Groovy/screens/budget_list/create_budget.dart';
+import 'package:Groovy/screens/request_notifications.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -39,6 +42,7 @@ class BudgetListScreen extends StatefulWidget {
 }
 
 class _BudgetListScreen extends State<BudgetListScreen> {
+  GlobalKey _drawerKey = GlobalKey();
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
   Query _budgetQuery;
@@ -57,7 +61,6 @@ class _BudgetListScreen extends State<BudgetListScreen> {
 
   bool _initialized = false;
   User currentUser = User();
-  List<User> users = [];
   List<String> tokenPlatorms = [];
 
   @override
@@ -67,7 +70,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
     _database.setPersistenceEnabled(true);
     _database.setPersistenceCacheSizeBytes(10000000); // 10MB cache
 
-    _getSavedThemePreference();
+    _getSavedPreferences();
 
     _budgetQuery = _database.reference().child("budgets");
     _usersQuery = _database.reference().child("users");
@@ -94,35 +97,46 @@ class _BudgetListScreen extends State<BudgetListScreen> {
     super.dispose();
   }
 
-  void fcmListeners() {
-    // if (Platform.isIOS) _iOSRequestNotificationPermission();
-
-    // _firebaseMessaging.configure(
-    //   onMessage: (Map<String, dynamic> message) async {
-    //     print('on message $message');
-    //   },
-    //   onResume: (Map<String, dynamic> message) async {
-    //     print('on resume $message');
-    //   },
-    //   onLaunch: (Map<String, dynamic> message) async {
-    //     print('on launch $message');
-    //   },
-    // );
-  }
-
-  void _iOSRequestNotificationPermission() {
-    _firebaseMessaging.requestNotificationPermissions(
-        IosNotificationSettings(sound: true, badge: true, alert: true));
-    _firebaseMessaging.onIosSettingsRegistered
-        .listen((IosNotificationSettings settings) {
-      print("Settings registered: $settings");
-    });
-  }
-
-  void _getSavedThemePreference() async {
+  void _getSavedPreferences() async {
     _preferences = await SharedPreferences.getInstance();
     var uiProvider = Provider.of<UIProvider>(context);
     uiProvider.isLightTheme = _preferences.getBool("theme") ?? false;
+  }
+
+  void fcmListeners() {
+    if (Platform.isIOS) _iOSRequestNotificationPermission();
+
+    _firebaseMessaging.configure(
+      onMessage: (Map<String, dynamic> message) async {
+        print('on message $message');
+      },
+      onResume: (Map<String, dynamic> message) async {
+        print('on resume $message');
+      },
+      onLaunch: (Map<String, dynamic> message) async {
+        print('on launch $message');
+      },
+    );
+  }
+
+  void _iOSRequestNotificationPermission() async {
+    _preferences = await SharedPreferences.getInstance();
+    var notificationPermissions =
+        _preferences.getBool("notifications") ?? false;
+
+    // If user has not chosen permission yet (first launch), give them option
+    if (notificationPermissions == false) {
+      Navigator.of(context).push(CupertinoPageRoute(
+          fullscreenDialog: true,
+          builder: (context) => RequestNotificationsScreen()));
+    }
+    _firebaseMessaging.onIosSettingsRegistered
+        .listen((IosNotificationSettings settings) {
+      if (settings.alert == true) {
+        Navigator.pop(context);
+      }
+      print("Settings registered: $settings");
+    });
   }
 
   void _getLocalStorageForNotAcceptedSharedBudgets() {
@@ -194,7 +208,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
         // Save new shared budget in localstorage so user can determine if they want to accept or decline
         if (budgetProvider.notAcceptedSharedBudgets.isEmpty) {
           budgetProvider.notAcceptedSharedBudgets.add(budget);
-          storageProvider.saveToStorage(
+          storageProvider.saveItemToStorage(
               budgetProvider,
               budgetProvider.notAcceptedSharedBudgets,
               'notAcceptedSharedBudgets');
@@ -202,7 +216,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
           for (Budget sharedBudget in budgetProvider.notAcceptedSharedBudgets) {
             if (sharedBudget.key != budget.key) {
               budgetProvider.notAcceptedSharedBudgets.add(budget);
-              storageProvider.saveToStorage(
+              storageProvider.saveItemToStorage(
                   budgetProvider,
                   budgetProvider.notAcceptedSharedBudgets,
                   'notAcceptedSharedBudgets');
@@ -224,7 +238,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
 
       // Remove budget from not accepted shared budgets if it exists
       budgetProvider.removeNotAcceptedBudget(budget);
-      storageProvider.saveToStorage(budgetProvider,
+      storageProvider.saveItemToStorage(budgetProvider,
           budgetProvider.notAcceptedSharedBudgets, 'notAcceptedSharedBudgets');
     }
   }
@@ -242,22 +256,38 @@ class _BudgetListScreen extends State<BudgetListScreen> {
   }
 
   _onUserAdded(Event event) {
-    users.add(User.fromSnapshot(event.snapshot));
+    var userProvider = Provider.of<UserProvider>(context);
+    userProvider.userList.add(User.fromSnapshot(event.snapshot));
     _updateUserOnFirebase();
   }
 
   _onUserChanged(Event event) {
+    var userProvider = Provider.of<UserProvider>(context);
     if (event.snapshot.value["email"] == widget.user.email) {
+      // update current user
       currentUser = User.fromSnapshot(event.snapshot);
+      userProvider.currentUser = currentUser;
+
+      // update useres list
+      var oldUser = userProvider.userList.singleWhere((user) {
+        return user.key == event.snapshot.key;
+      });
+
+      setState(() {
+        userProvider.userList[userProvider.userList.indexOf(oldUser)] =
+            User.fromSnapshot(event.snapshot);
+      });
     }
   }
 
   _updateUserOnFirebase() {
+    var userProvider = Provider.of<UserProvider>(context);
     List<User> duplicateUsers = [];
 
-    users.forEach((user) {
+    userProvider.userList.forEach((user) {
       if (user.email == widget.user.email) {
         currentUser = user;
+        userProvider.currentUser = currentUser;
         duplicateUsers.add(user);
         if (!tokenPlatorms.contains(user.tokenPlatform.first)) {
           tokenPlatorms.add(user.tokenPlatform.first);
@@ -268,13 +298,14 @@ class _BudgetListScreen extends State<BudgetListScreen> {
     if (duplicateUsers.length == 2) {
       duplicateUsers[0].tokenPlatform = tokenPlatorms;
 
-      users.forEach((user) {
+      userProvider.userList.forEach((user) {
         if (user.key == duplicateUsers[1].key) {
           widget.auth.deleteUser(_database, user);
         }
       });
 
       currentUser = duplicateUsers[0];
+      userProvider.currentUser = currentUser;
       widget.auth.updateUser(_database, duplicateUsers[0]);
     }
   }
@@ -308,11 +339,10 @@ class _BudgetListScreen extends State<BudgetListScreen> {
   }
 
   _removeUserToken() async {
+    var userProvider = Provider.of<UserProvider>(context);
     String currentTokenPlatform;
     var token = await _firebaseMessaging.getToken();
-    var platform = Theme.of(context).platform == TargetPlatform.android
-        ? "android"
-        : "iOS";
+    var platform = Platform.isAndroid ? "android" : "iOS";
     currentTokenPlatform = "$token&&platform===>$platform";
 
     var tokenPlatforms = [];
@@ -331,6 +361,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
     }
 
     currentUser = User();
+    userProvider.currentUser = currentUser;
   }
 
   _signOut() {
@@ -340,15 +371,16 @@ class _BudgetListScreen extends State<BudgetListScreen> {
     var budgetProvider = Provider.of<BudgetProvider>(context);
     var storageProvider = Provider.of<StorageProvider>(context);
     var uiProvider = Provider.of<UIProvider>(context);
+    var userProvider = Provider.of<UserProvider>(context);
 
     try {
       uiProvider.isLoading = false;
       budgetProvider.budgetList = [];
       budgetProvider.notAcceptedSharedBudgets = [];
       tokenPlatorms = [];
-      users = [];
+      userProvider.userList = [];
       // save empty not accepted shared budgets to storage
-      storageProvider.saveToStorage(budgetProvider,
+      storageProvider.saveItemToStorage(budgetProvider,
           budgetProvider.notAcceptedSharedBudgets, 'notAcceptedSharedBudgets');
       widget.auth.signOut();
       widget.onSignedOut();
@@ -419,478 +451,443 @@ class _BudgetListScreen extends State<BudgetListScreen> {
     Widget _showBudgetList() {
       if (budgetProvider.budgetList.length > 0) {
         // Swipe up to show 'Create Budget' dialog
-        return GestureDetector(
-          onPanStart: (details) {
-            _initialDragAmount = details.globalPosition.dy;
-          },
-          onPanUpdate: (details) {
-            _finalDragAmount = details.globalPosition.dy - _initialDragAmount;
-          },
-          onPanEnd: (details) {
-            if (_finalDragAmount < 0) {
-              authProvider.auth = widget.auth;
-              Navigator.of(context).push(CupertinoPageRoute(
-                  fullscreenDialog: true,
-                  builder: (context) => CreateBudgetScreen(
-                        user: widget.user,
-                      )));
-            }
-          },
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Expanded(
-                  child: MediaQuery.removePadding(
-                context: context,
-                removeTop: true,
-                child: ListView.builder(
-                    physics: BouncingScrollPhysics(),
-                    shrinkWrap: true,
-                    itemCount: budgetProvider.budgetList.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      String name = budgetProvider.budgetList[index].name;
-                      num spent = budgetProvider.budgetList[index].spent;
-                      num setAmount =
-                          budgetProvider.budgetList[index].setAmount;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Expanded(
+                child: MediaQuery.removePadding(
+              context: context,
+              removeTop: true,
+              child: ListView.builder(
+                  physics: BouncingScrollPhysics(),
+                  shrinkWrap: true,
+                  itemCount: budgetProvider.budgetList.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    String name = budgetProvider.budgetList[index].name;
+                    num spent = budgetProvider.budgetList[index].spent;
+                    num setAmount = budgetProvider.budgetList[index].setAmount;
 
-                      // Determine if budget is saved in not accepted budgets
-                      bool isNotAccepted = false;
-                      String nameOfUserThatSharedNotAcceptedBudget = "";
-                      for (Budget notAcceptedSharedBudget
-                          in budgetProvider.notAcceptedSharedBudgets) {
-                        if (notAcceptedSharedBudget.key ==
-                            budgetProvider.budgetList[index].key) {
-                          isNotAccepted = true;
-                          nameOfUserThatSharedNotAcceptedBudget =
-                              notAcceptedSharedBudget.sharedName;
-                        }
+                    // Determine if budget is saved in not accepted budgets
+                    bool isNotAccepted = false;
+                    String nameOfUserThatSharedNotAcceptedBudget = "";
+                    for (Budget notAcceptedSharedBudget
+                        in budgetProvider.notAcceptedSharedBudgets) {
+                      if (notAcceptedSharedBudget.key ==
+                          budgetProvider.budgetList[index].key) {
+                        isNotAccepted = true;
+                        nameOfUserThatSharedNotAcceptedBudget =
+                            notAcceptedSharedBudget.sharedName;
                       }
-                      return isNotAccepted
-                          ? Opacity(
-                              opacity: 0.5,
-                              child: Container(
-                                height: 120,
-                                padding: EdgeInsets.fromLTRB(32, 0, 32, 20),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(32.0),
-                                ),
-                                child: new ClipRect(
-                                  child: new BackdropFilter(
-                                    filter: new ImageFilter.blur(
-                                      sigmaX: 15.0,
-                                      sigmaY: 15.0,
-                                    ),
-                                    child: new Container(
-                                        decoration: new BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(32.0),
-                                            color: uiProvider.isLightTheme
-                                                ? Colors.white.withOpacity(0.5)
-                                                : Colors.black
-                                                    .withOpacity(0.5)),
-                                        child: Container(
-                                          child: Card(
-                                              borderOnForeground: false,
-                                              elevation: 0,
-                                              color: Colors.transparent,
-                                              shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.all(
-                                                          Radius.circular(
-                                                              32.0))),
-                                              child: InkWell(
-                                                  splashColor:
-                                                      uiProvider.isLightTheme
-                                                          ? Colors.grey[300]
-                                                              .withOpacity(0.5)
-                                                          : Colors.grey[100]
-                                                              .withOpacity(0.1),
-                                                  borderRadius:
-                                                      BorderRadius.all(Radius
-                                                          .circular(32.0)),
-                                                  onTap: () {
-                                                    var budgetProvider =
-                                                        Provider.of<
-                                                                BudgetProvider>(
-                                                            context);
-                                                    budgetProvider
-                                                            .selectedBudget =
-                                                        budgetProvider
-                                                            .budgetList[index];
-                                                    var authProvider = Provider
-                                                        .of<AuthProvider>(
-                                                            context);
-                                                    authProvider.auth =
-                                                        widget.auth;
+                    }
+                    return isNotAccepted
+                        ? Opacity(
+                            opacity: 0.5,
+                            child: Container(
+                              height: 120,
+                              padding: EdgeInsets.fromLTRB(32, 0, 32, 20),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(32.0),
+                              ),
+                              child: new ClipRect(
+                                child: new BackdropFilter(
+                                  filter: new ImageFilter.blur(
+                                    sigmaX: 15.0,
+                                    sigmaY: 15.0,
+                                  ),
+                                  child: new Container(
+                                      decoration: new BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(32.0),
+                                          color: uiProvider.isLightTheme
+                                              ? Colors.white.withOpacity(0.5)
+                                              : Colors.black.withOpacity(0.5)),
+                                      child: Container(
+                                        child: Card(
+                                            borderOnForeground: false,
+                                            elevation: 0,
+                                            color: Colors.transparent,
+                                            shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.all(
+                                                    Radius.circular(32.0))),
+                                            child: InkWell(
+                                                splashColor:
+                                                    uiProvider.isLightTheme
+                                                        ? Colors.grey[300]
+                                                            .withOpacity(0.5)
+                                                        : Colors.grey[100]
+                                                            .withOpacity(0.1),
+                                                borderRadius: BorderRadius.all(
+                                                    Radius.circular(32.0)),
+                                                onTap: () {
+                                                  var budgetProvider = Provider
+                                                      .of<BudgetProvider>(
+                                                          context);
+                                                  budgetProvider
+                                                          .selectedBudget =
+                                                      budgetProvider
+                                                          .budgetList[index];
+                                                  var authProvider =
+                                                      Provider.of<AuthProvider>(
+                                                          context);
+                                                  authProvider.auth =
+                                                      widget.auth;
 
-                                                    showAlertDialog(
-                                                        context,
-                                                        "Accept budget?",
-                                                        nameOfUserThatSharedNotAcceptedBudget ==
-                                                                    "" ||
-                                                                nameOfUserThatSharedNotAcceptedBudget ==
-                                                                    "none"
-                                                            ? "'${budgetProvider.budgetList[index].name}' has been shared with you. Accept to add it to your list."
-                                                            : "$nameOfUserThatSharedNotAcceptedBudget shared '${budgetProvider.budgetList[index].name}' with you. Accept to add it to your list.",
-                                                        [
-                                                          FlatButton(
-                                                            child: Text(
-                                                              'Close',
-                                                              style: TextStyle(
-                                                                  color: Colors
-                                                                      .grey),
-                                                            ),
-                                                            onPressed: () {
-                                                              Navigator.of(
-                                                                      context)
-                                                                  .pop();
-                                                            },
+                                                  showAlertDialog(
+                                                      context,
+                                                      "Accept budget?",
+                                                      nameOfUserThatSharedNotAcceptedBudget ==
+                                                                  "" ||
+                                                              nameOfUserThatSharedNotAcceptedBudget ==
+                                                                  "none"
+                                                          ? "'${budgetProvider.budgetList[index].name}' has been shared with you. Accept to add it to your list."
+                                                          : "$nameOfUserThatSharedNotAcceptedBudget shared '${budgetProvider.budgetList[index].name}' with you. Accept to add it to your list.",
+                                                      [
+                                                        FlatButton(
+                                                          child: Text(
+                                                            'Close',
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .grey),
                                                           ),
-                                                          FlatButton(
-                                                            child: Text(
-                                                              'Decline',
-                                                              style: TextStyle(
-                                                                  color: uiProvider
-                                                                          .isLightTheme
-                                                                      ? Colors
-                                                                          .black
-                                                                      : Colors
-                                                                          .white),
-                                                            ),
-                                                            onPressed: () {
-                                                              // Decline budget
-
-                                                              // Remove budget from not accepted shared budgets if it exists
-                                                              budgetProvider
-                                                                  .removeNotAcceptedBudget(
-                                                                      budgetProvider
-                                                                          .selectedBudget);
-                                                              storageProvider.saveToStorage(
-                                                                  budgetProvider,
-                                                                  budgetProvider
-                                                                      .notAcceptedSharedBudgets,
-                                                                  'notAcceptedSharedBudgets');
-
-                                                              // Remove user from budget shared list
-                                                              _removeUserFromSharedBudget(
-                                                                  widget.user
-                                                                      .email);
-
-                                                              Navigator.of(
-                                                                      context)
-                                                                  .pop();
-                                                            },
-                                                          ),
-                                                          FlatButton(
-                                                            child: Text(
-                                                              'Accept',
-                                                              style: TextStyle(
-                                                                  color: uiProvider
-                                                                          .isLightTheme
-                                                                      ? Colors
-                                                                          .black
-                                                                      : Colors
-                                                                          .white),
-                                                            ),
-                                                            onPressed: () {
-                                                              // Accept budget
-
-                                                              // Remove budget from not accepted shared budgets if it exists
-                                                              budgetProvider
-                                                                  .removeNotAcceptedBudget(
-                                                                      budgetProvider
-                                                                          .selectedBudget);
-                                                              storageProvider.saveToStorage(
-                                                                  budgetProvider,
-                                                                  budgetProvider
-                                                                      .notAcceptedSharedBudgets,
-                                                                  'notAcceptedSharedBudgets');
-
-                                                              Navigator.of(
-                                                                      context)
-                                                                  .pop();
-                                                            },
-                                                          )
-                                                        ]);
-                                                  },
-                                                  child: Stack(
-                                                    children: <Widget>[
-                                                      ListTile(
-                                                        contentPadding:
-                                                            EdgeInsets.only(
-                                                                top: 11.0,
-                                                                left: 30.0),
-                                                        title: AutoSizeText(
-                                                          name,
-                                                          maxLines: 1,
-                                                          style: TextStyle(
-                                                              fontSize: 28.0,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w700,
-                                                              color: uiProvider
-                                                                      .isLightTheme
-                                                                  ? Colors
-                                                                      .grey[800]
-                                                                  : Colors
-                                                                      .white),
+                                                          onPressed: () {
+                                                            Navigator.of(
+                                                                    context)
+                                                                .pop();
+                                                          },
                                                         ),
-                                                        subtitle: Padding(
-                                                          padding:
-                                                              EdgeInsets.only(
-                                                                  top: 5.0),
-                                                          child: AutoSizeText(
-                                                            "${_currency.format(spent)} of ${_currency.format(setAmount)}",
-                                                            maxLines: 1,
+                                                        FlatButton(
+                                                          child: Text(
+                                                            'Decline',
                                                             style: TextStyle(
                                                                 color: uiProvider
                                                                         .isLightTheme
-                                                                    ? Colors.grey[
-                                                                        700]
-                                                                    : Colors.grey[
-                                                                        400],
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w700,
-                                                                fontSize: 17.0),
+                                                                    ? Colors
+                                                                        .black
+                                                                    : Colors
+                                                                        .white),
                                                           ),
+                                                          onPressed: () {
+                                                            // Decline budget
+
+                                                            // Remove budget from not accepted shared budgets if it exists
+                                                            budgetProvider
+                                                                .removeNotAcceptedBudget(
+                                                                    budgetProvider
+                                                                        .selectedBudget);
+                                                            storageProvider.saveItemToStorage(
+                                                                budgetProvider,
+                                                                budgetProvider
+                                                                    .notAcceptedSharedBudgets,
+                                                                'notAcceptedSharedBudgets');
+
+                                                            // Remove user from budget shared list
+                                                            _removeUserFromSharedBudget(
+                                                                widget.user
+                                                                    .email);
+
+                                                            Navigator.of(
+                                                                    context)
+                                                                .pop();
+                                                          },
                                                         ),
-                                                        trailing: Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                      .only(
-                                                                  right: 18.0),
-                                                          child: budgetProvider
-                                                                  .budgetList[
-                                                                      index]
-                                                                  .isShared
-                                                              ? Icon(
-                                                                  Icons
-                                                                      .account_circle,
-                                                                  color: uiProvider
-                                                                          .isLightTheme
-                                                                      ? Colors
-                                                                          .grey[
-                                                                              700]
-                                                                          .withOpacity(
-                                                                              0.4)
-                                                                      : Colors
-                                                                          .grey[
-                                                                              100]
-                                                                          .withOpacity(
-                                                                              0.4),
-                                                                )
-                                                              : null,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ))),
-                                        )),
-                                  ),
-                                ),
-                              ))
-                          : OnSlide(
-                              items: <ActionItems>[
-                                  new ActionItems(
-                                      icon: new IconButton(
-                                        icon: new Icon(Icons.edit),
-                                        onPressed: () {},
-                                        color: Colors.white,
-                                      ),
-                                      onPress: () {
-                                        budgetProvider.selectedBudget =
-                                            budgetProvider.budgetList[index];
-                                        Navigator.of(context).push(
-                                            CupertinoPageRoute(
-                                                fullscreenDialog: true,
-                                                builder: (context) =>
-                                                    EditBudgetScreen(
-                                                      budget: budgetProvider
-                                                          .budgetList[index],
-                                                    )));
-                                      },
-                                      backgroundColor: Colors.transparent),
-                                  new ActionItems(
-                                      icon: new IconButton(
-                                        icon: new Icon(Icons.account_circle),
-                                        onPressed: () {},
-                                        color: Colors.white,
-                                      ),
-                                      onPress: () {
-                                        budgetProvider.selectedBudget =
-                                            budgetProvider.budgetList[index];
-                                        Navigator.of(context).push(
-                                            CupertinoPageRoute(
-                                                fullscreenDialog: true,
-                                                builder: (context) =>
-                                                    ShareBudgetScreen(
-                                                      budget: budgetProvider
-                                                          .selectedBudget,
-                                                      user: widget.user,
-                                                      auth: widget.auth,
-                                                    )));
-                                      },
-                                      backgroundColor: Colors.transparent),
-                                  new ActionItems(
-                                      icon: new IconButton(
-                                        icon: new Icon(Icons.delete),
-                                        onPressed: () {},
-                                        color: Colors.white,
-                                      ),
-                                      onPress: () {
-                                        _deleteBudget(
-                                            budgetProvider.budgetList[index]);
-                                      },
-                                      backgroundColor: Colors.transparent),
-                                ],
-                              child: Container(
-                                height: 120,
-                                padding: EdgeInsets.fromLTRB(32, 0, 32, 20),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(32.0),
-                                ),
-                                child: new ClipRect(
-                                  child: new BackdropFilter(
-                                    filter: new ImageFilter.blur(
-                                      sigmaX: 15.0,
-                                      sigmaY: 15.0,
-                                    ),
-                                    child: new Container(
-                                        decoration: new BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(32.0),
-                                            color: uiProvider.isLightTheme
-                                                ? Colors.white.withOpacity(0.5)
-                                                : Colors.black
-                                                    .withOpacity(0.5)),
-                                        child: Container(
-                                          child: Card(
-                                              borderOnForeground: false,
-                                              elevation: 0,
-                                              color: Colors.transparent,
-                                              shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.all(
-                                                          Radius.circular(
-                                                              32.0))),
-                                              child: InkWell(
-                                                  splashColor:
-                                                      uiProvider.isLightTheme
-                                                          ? Colors.grey[300]
-                                                              .withOpacity(0.5)
-                                                          : Colors.grey[100]
-                                                              .withOpacity(0.1),
-                                                  borderRadius:
-                                                      BorderRadius.all(Radius
-                                                          .circular(32.0)),
-                                                  onTap: () {
-                                                    var budgetProvider =
-                                                        Provider.of<
-                                                                BudgetProvider>(
-                                                            context);
-                                                    budgetProvider
-                                                            .selectedBudget =
-                                                        budgetProvider
-                                                            .budgetList[index];
-                                                    var authProvider = Provider
-                                                        .of<AuthProvider>(
-                                                            context);
-                                                    authProvider.auth =
-                                                        widget.auth;
-                                                    Navigator.of(context).push(
-                                                        MaterialPageRoute(
-                                                            builder: (context) =>
-                                                                BudgetDetailScreen(
-                                                                  user: widget
-                                                                      .user,
-                                                                  auth: widget
-                                                                      .auth,
-                                                                )));
-                                                  },
-                                                  child: Stack(
-                                                    children: <Widget>[
-                                                      ListTile(
-                                                        contentPadding:
-                                                            EdgeInsets.only(
-                                                                top: 11.0,
-                                                                left: 30.0),
-                                                        title: AutoSizeText(
-                                                          name,
-                                                          maxLines: 1,
-                                                          style: TextStyle(
-                                                              fontSize: 28.0,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w700,
-                                                              color: uiProvider
-                                                                      .isLightTheme
-                                                                  ? Colors
-                                                                      .grey[800]
-                                                                  : Colors
-                                                                      .white),
-                                                        ),
-                                                        subtitle: Padding(
-                                                          padding:
-                                                              EdgeInsets.only(
-                                                                  top: 5.0),
-                                                          child: AutoSizeText(
-                                                            "${_currency.format(spent)} of ${_currency.format(setAmount)}",
-                                                            maxLines: 1,
+                                                        FlatButton(
+                                                          child: Text(
+                                                            'Accept',
                                                             style: TextStyle(
                                                                 color: uiProvider
                                                                         .isLightTheme
-                                                                    ? Colors.grey[
-                                                                        700]
-                                                                    : Colors.grey[
-                                                                        400],
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w700,
-                                                                fontSize: 17.0),
+                                                                    ? Colors
+                                                                        .black
+                                                                    : Colors
+                                                                        .white),
                                                           ),
-                                                        ),
-                                                        trailing: Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                      .only(
-                                                                  right: 18.0),
-                                                          child: budgetProvider
-                                                                  .budgetList[
-                                                                      index]
-                                                                  .isShared
-                                                              ? Icon(
-                                                                  Icons
-                                                                      .account_circle,
-                                                                  color: uiProvider
-                                                                          .isLightTheme
-                                                                      ? Colors
-                                                                          .grey[
-                                                                              700]
-                                                                          .withOpacity(
-                                                                              0.4)
-                                                                      : Colors
-                                                                          .grey[
-                                                                              100]
-                                                                          .withOpacity(
-                                                                              0.4),
-                                                                )
-                                                              : null,
+                                                          onPressed: () {
+                                                            // Accept budget
+
+                                                            // Remove budget from not accepted shared budgets if it exists
+                                                            budgetProvider
+                                                                .removeNotAcceptedBudget(
+                                                                    budgetProvider
+                                                                        .selectedBudget);
+                                                            storageProvider.saveItemToStorage(
+                                                                budgetProvider,
+                                                                budgetProvider
+                                                                    .notAcceptedSharedBudgets,
+                                                                'notAcceptedSharedBudgets');
+
+                                                            Navigator.of(
+                                                                    context)
+                                                                .pop();
+                                                          },
+                                                        )
+                                                      ]);
+                                                },
+                                                child: Stack(
+                                                  children: <Widget>[
+                                                    ListTile(
+                                                      contentPadding:
+                                                          EdgeInsets.only(
+                                                              top: 11.0,
+                                                              left: 30.0),
+                                                      title: AutoSizeText(
+                                                        name,
+                                                        maxLines: 1,
+                                                        style: TextStyle(
+                                                            fontSize: 28.0,
+                                                            fontWeight:
+                                                                FontWeight.w700,
+                                                            color: uiProvider
+                                                                    .isLightTheme
+                                                                ? Colors
+                                                                    .grey[800]
+                                                                : Colors.white),
+                                                      ),
+                                                      subtitle: Padding(
+                                                        padding:
+                                                            EdgeInsets.only(
+                                                                top: 5.0),
+                                                        child: AutoSizeText(
+                                                          "${_currency.format(spent)} of ${_currency.format(setAmount)}",
+                                                          maxLines: 1,
+                                                          style: TextStyle(
+                                                              color: uiProvider
+                                                                      .isLightTheme
+                                                                  ? Colors
+                                                                      .grey[700]
+                                                                  : Colors.grey[
+                                                                      400],
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700,
+                                                              fontSize: 17.0),
                                                         ),
                                                       ),
-                                                    ],
-                                                  ))),
-                                        )),
-                                  ),
+                                                      trailing: Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                    .only(
+                                                                right: 18.0),
+                                                        child:
+                                                            budgetProvider
+                                                                    .budgetList[
+                                                                        index]
+                                                                    .isShared
+                                                                ? Icon(
+                                                                    Icons
+                                                                        .account_circle,
+                                                                    color: uiProvider
+                                                                            .isLightTheme
+                                                                        ? Colors
+                                                                            .grey[
+                                                                                700]
+                                                                            .withOpacity(
+                                                                                0.4)
+                                                                        : Colors
+                                                                            .grey[100]
+                                                                            .withOpacity(0.4),
+                                                                  )
+                                                                : null,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ))),
+                                      )),
                                 ),
-                              ));
-                    }),
-              ))
-            ],
-          ),
+                              ),
+                            ))
+                        : OnSlide(
+                            items: <ActionItems>[
+                                new ActionItems(
+                                    icon: new IconButton(
+                                      icon: new Icon(Icons.edit),
+                                      onPressed: () {},
+                                      color: Colors.white,
+                                    ),
+                                    onPress: () {
+                                      budgetProvider.selectedBudget =
+                                          budgetProvider.budgetList[index];
+                                      Navigator.of(context).push(
+                                          CupertinoPageRoute(
+                                              fullscreenDialog: true,
+                                              builder: (context) =>
+                                                  EditBudgetScreen(
+                                                    budget: budgetProvider
+                                                        .budgetList[index],
+                                                  )));
+                                    },
+                                    backgroundColor: Colors.transparent),
+                                new ActionItems(
+                                    icon: new IconButton(
+                                      icon: new Icon(Icons.account_circle),
+                                      onPressed: () {},
+                                      color: Colors.white,
+                                    ),
+                                    onPress: () {
+                                      budgetProvider.selectedBudget =
+                                          budgetProvider.budgetList[index];
+                                      Navigator.of(context).push(
+                                          CupertinoPageRoute(
+                                              fullscreenDialog: true,
+                                              builder: (context) =>
+                                                  ShareBudgetScreen(
+                                                    budget: budgetProvider
+                                                        .selectedBudget,
+                                                    user: widget.user,
+                                                    auth: widget.auth,
+                                                  )));
+                                    },
+                                    backgroundColor: Colors.transparent),
+                                new ActionItems(
+                                    icon: new IconButton(
+                                      icon: new Icon(Icons.delete),
+                                      onPressed: () {},
+                                      color: Colors.white,
+                                    ),
+                                    onPress: () {
+                                      _deleteBudget(
+                                          budgetProvider.budgetList[index]);
+                                    },
+                                    backgroundColor: Colors.transparent),
+                              ],
+                            child: Container(
+                              height: 120,
+                              padding: EdgeInsets.fromLTRB(32, 0, 32, 20),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(32.0),
+                              ),
+                              child: new ClipRect(
+                                child: new BackdropFilter(
+                                  filter: new ImageFilter.blur(
+                                    sigmaX: 15.0,
+                                    sigmaY: 15.0,
+                                  ),
+                                  child: new Container(
+                                      decoration: new BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(32.0),
+                                          color: uiProvider.isLightTheme
+                                              ? Colors.white.withOpacity(0.5)
+                                              : Colors.black.withOpacity(0.5)),
+                                      child: Container(
+                                        child: Card(
+                                            borderOnForeground: false,
+                                            elevation: 0,
+                                            color: Colors.transparent,
+                                            shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.all(
+                                                    Radius.circular(32.0))),
+                                            child: InkWell(
+                                                splashColor:
+                                                    uiProvider.isLightTheme
+                                                        ? Colors.grey[300]
+                                                            .withOpacity(0.5)
+                                                        : Colors.grey[100]
+                                                            .withOpacity(0.1),
+                                                borderRadius: BorderRadius.all(
+                                                    Radius.circular(32.0)),
+                                                onTap: () {
+                                                  var budgetProvider = Provider
+                                                      .of<BudgetProvider>(
+                                                          context);
+                                                  budgetProvider
+                                                          .selectedBudget =
+                                                      budgetProvider
+                                                          .budgetList[index];
+                                                  var authProvider =
+                                                      Provider.of<AuthProvider>(
+                                                          context);
+                                                  authProvider.auth =
+                                                      widget.auth;
+                                                  Navigator.of(context).push(
+                                                      MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              BudgetDetailScreen(
+                                                                user:
+                                                                    widget.user,
+                                                                auth:
+                                                                    widget.auth,
+                                                              )));
+                                                },
+                                                child: Stack(
+                                                  children: <Widget>[
+                                                    ListTile(
+                                                      contentPadding:
+                                                          EdgeInsets.only(
+                                                              top: 11.0,
+                                                              left: 30.0),
+                                                      title: AutoSizeText(
+                                                        name,
+                                                        maxLines: 1,
+                                                        style: TextStyle(
+                                                            fontSize: 28.0,
+                                                            fontWeight:
+                                                                FontWeight.w700,
+                                                            color: uiProvider
+                                                                    .isLightTheme
+                                                                ? Colors
+                                                                    .grey[800]
+                                                                : Colors.white),
+                                                      ),
+                                                      subtitle: Padding(
+                                                        padding:
+                                                            EdgeInsets.only(
+                                                                top: 5.0),
+                                                        child: AutoSizeText(
+                                                          "${_currency.format(spent)} of ${_currency.format(setAmount)}",
+                                                          maxLines: 1,
+                                                          style: TextStyle(
+                                                              color: uiProvider
+                                                                      .isLightTheme
+                                                                  ? Colors
+                                                                      .grey[700]
+                                                                  : Colors.grey[
+                                                                      400],
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700,
+                                                              fontSize: 17.0),
+                                                        ),
+                                                      ),
+                                                      trailing: Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                    .only(
+                                                                right: 18.0),
+                                                        child:
+                                                            budgetProvider
+                                                                    .budgetList[
+                                                                        index]
+                                                                    .isShared
+                                                                ? Icon(
+                                                                    Icons
+                                                                        .account_circle,
+                                                                    color: uiProvider
+                                                                            .isLightTheme
+                                                                        ? Colors
+                                                                            .grey[
+                                                                                700]
+                                                                            .withOpacity(
+                                                                                0.4)
+                                                                        : Colors
+                                                                            .grey[100]
+                                                                            .withOpacity(0.4),
+                                                                  )
+                                                                : null,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ))),
+                                      )),
+                                ),
+                              ),
+                            ));
+                  }),
+            ))
+          ],
         );
       } else {
-        return Center(
-            child: Container(
+        return Container(
+          alignment: Alignment.center,
           padding: EdgeInsets.only(bottom: 100.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -903,333 +900,357 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                     color: Colors.black.withOpacity(0.5)),
               ),
               Text(
-                "Create one to get started",
+                "Swipe up to get started",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     fontSize: 18.0, color: Colors.black.withOpacity(0.5)),
               ),
             ],
           ),
-        ));
+        );
       }
     }
 
-    return Stack(children: <Widget>[
-      Positioned.fill(
-        child: AnimatedBackground(),
-      ),
-      Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          iconTheme: IconThemeData(color: Colors.white),
-          brightness: Brightness.dark,
-          elevation: 0.0,
-        ),
-        drawer: Drawer(
-            child: Container(
-          color: uiProvider.isLightTheme ? Colors.white : Colors.grey[900],
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              UserAccountsDrawerHeader(
-                decoration: BoxDecoration(color: Colors.black),
-                accountEmail: widget.user.email != null
-                    ? Text(widget.user.email)
-                    : SizedBox.shrink(),
-                accountName: widget.user.displayName != null
-                    ? Text(
-                        widget.user.displayName,
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w600),
-                      )
-                    : SizedBox.shrink(),
-                currentAccountPicture: CircleAvatar(
-                    backgroundColor: Colors.black,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(45.0),
-                      child: widget.user.photoUrl != null
-                          ? Image.network(
-                              widget.user.photoUrl,
-                              fit: BoxFit.cover,
-                            )
-                          : CircleAvatar(
-                              backgroundColor: Colors.grey[300],
-                              radius: 29,
-                              child: Center(
-                                child: Text(
-                                  widget.user.email
-                                      .substring(0, 1)
-                                      .toLowerCase(),
-                                  style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 32,
-                                      fontWeight: FontWeight.w600),
-                                ),
-                              ),
-                            ),
-                    )),
-              ),
-              Padding(
-                padding:
-                    const EdgeInsets.only(top: 5.0, bottom: 5.0, left: 14.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      "budgets",
-                      style: TextStyle(
-                          fontSize: 22.0,
-                          fontWeight: FontWeight.w700,
-                          color: uiProvider.isLightTheme
-                              ? Colors.black87
-                              : Colors.grey),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 5.0),
-                      child: Text(
-                        "${budgetProvider.budgetList.length.toString()}",
-                        style: TextStyle(
-                            fontSize: 22.0,
-                            fontWeight: FontWeight.w700,
-                            color: uiProvider.isLightTheme
-                                ? Colors.grey[500]
-                                : Colors.white),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Divider(
-                color: Colors.grey[500],
-              ),
-              Padding(
-                padding:
-                    const EdgeInsets.only(top: 5.0, bottom: 5.0, left: 14.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      "total spent",
-                      style: TextStyle(
-                          fontSize: 22.0,
-                          fontWeight: FontWeight.w700,
-                          color: uiProvider.isLightTheme
-                              ? Colors.black87
-                              : Colors.grey),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 5.0),
-                      child: Text(
-                        "${_currency.format(totalAmountSpent(budgetProvider))}",
-                        style: TextStyle(
-                            fontSize: 22.0,
-                            fontWeight: FontWeight.w700,
-                            color: uiProvider.isLightTheme
-                                ? Colors.grey[500]
-                                : Colors.white),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Divider(
-                color: Colors.grey[500],
-              ),
-              Padding(
-                padding:
-                    const EdgeInsets.only(top: 5.0, bottom: 5.0, left: 14.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      "total left",
-                      style: TextStyle(
-                          fontSize: 22.0,
-                          fontWeight: FontWeight.w700,
-                          color: uiProvider.isLightTheme
-                              ? Colors.black87
-                              : Colors.grey),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 5.0),
-                      child: Text(
-                        "${_currency.format(totalAmountLeft(budgetProvider))}",
-                        style: TextStyle(
-                            fontSize: 22.0,
-                            fontWeight: FontWeight.w700,
-                            color: uiProvider.isLightTheme
-                                ? Colors.grey[500]
-                                : Colors.white),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Divider(
-                color: Colors.grey[500],
-              ),
-              Padding(
-                padding:
-                    const EdgeInsets.only(top: 5.0, bottom: 5.0, left: 14.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      "theme",
-                      style: TextStyle(
-                          fontSize: 22.0,
-                          fontWeight: FontWeight.w700,
-                          color: uiProvider.isLightTheme
-                              ? Colors.black87
-                              : Colors.grey),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: Row(
-                        children: <Widget>[
-                          Padding(
-                            padding: const EdgeInsets.only(right: 5.0),
-                            child: CircleAvatar(
-                              backgroundColor: uiProvider.isLightTheme
-                                  ? Colors.transparent
-                                  : Color(0xffd57eeb),
-                              radius: 30,
-                              child: FloatingActionButton(
-                                tooltip: "Dark",
-                                mini: true,
-                                elevation: 0.0,
-                                backgroundColor: Colors.black87,
-                                child: Icon(Icons.brightness_2),
-                                onPressed: () {
-                                  setState(() {
-                                    uiProvider.isLightTheme = false;
-                                    _preferences.setBool(
-                                        "theme", uiProvider.isLightTheme);
-                                  });
-                                },
-                              ),
-                            ),
-                          ),
-                          CircleAvatar(
-                            backgroundColor: uiProvider.isLightTheme
-                                ? Color(0xffd57eeb)
-                                : Colors.transparent,
-                            radius: 30,
-                            child: FloatingActionButton(
-                              tooltip: "Light",
-                              mini: true,
-                              elevation: 0.0,
-                              backgroundColor: Colors.grey[200],
-                              child: Icon(
-                                Icons.wb_sunny,
-                                color: Colors.grey,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  uiProvider.isLightTheme = true;
-                                  _preferences.setBool(
-                                      "theme", uiProvider.isLightTheme);
-                                });
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Align(
-                  alignment: Alignment.bottomLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 14.0, bottom: 16),
-                    child: FloatingActionButton(
-                      tooltip: "Signout",
-                      elevation: 0,
-                      backgroundColor: Colors.grey[300],
-                      foregroundColor: Colors.black87,
-                      child: RotationTransition(
-                          turns: new AlwaysStoppedAnimation(180 / 360),
-                          child: Icon(
-                            Icons.exit_to_app,
-                          )),
-                      onPressed: () {
-                        showAlertDialog(context, "Signout",
-                            "Are you sure you want to signout?", [
-                          FlatButton(
-                            child: Text(
-                              'Cancel',
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                            },
-                          ),
-                          FlatButton(
-                            child: Text(
-                              'Signout',
-                              style: TextStyle(
-                                  color: uiProvider.isLightTheme
-                                      ? Colors.black
-                                      : Colors.white),
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                uiProvider.isLoading = true;
-                              });
-                              _signOut();
-                            },
-                          )
-                        ]);
-                      },
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        )),
-        body: FutureBuilder(
-            future: storageProvider.storage.ready,
-            builder: (BuildContext context, AsyncSnapshot snapshot) {
-              if (snapshot.data == null) {
-                return Center(
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                        Colors.black.withOpacity(0.5)),
-                  ),
-                );
-              }
-
-              if (!_initialized) {
-                _getLocalStorageForNotAcceptedSharedBudgets();
-                _initialized = true;
-              }
-
-              return _showBudgetList();
-            }),
-        floatingActionButton: FloatingActionButton(
-          backgroundColor: uiProvider.isLightTheme
-              ? Colors.white.withOpacity(0.5)
-              : Colors.black.withOpacity(0.5),
-          child: Icon(
-            Icons.add,
-            size: 28,
-            color: uiProvider.isLightTheme ? Colors.grey[800] : Colors.white,
-          ),
-          elevation: 0,
-          onPressed: () {
+    return GestureDetector(
+        onPanStart: (details) {
+          _initialDragAmount = details.globalPosition.dy;
+        },
+        onPanUpdate: (details) {
+          _finalDragAmount = details.globalPosition.dy - _initialDragAmount;
+        },
+        onPanEnd: (details) {
+          final RenderBox drawerBox =
+              _drawerKey.currentContext?.findRenderObject();
+          // only open create budget window if drawer is closed
+          if (_finalDragAmount < 0 && drawerBox == null) {
             authProvider.auth = widget.auth;
             Navigator.of(context).push(CupertinoPageRoute(
                 fullscreenDialog: true,
                 builder: (context) => CreateBudgetScreen(
                       user: widget.user,
                     )));
-          },
-        ),
-      ),
-    ]);
+          }
+        },
+        child: Stack(children: <Widget>[
+          Positioned.fill(
+            child: AnimatedBackground(),
+          ),
+          Scaffold(
+            backgroundColor: Colors.transparent,
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              iconTheme: IconThemeData(color: Colors.white),
+              brightness: Brightness.dark,
+              elevation: 0.0,
+            ),
+            drawer: Drawer(
+                key: _drawerKey,
+                child: Container(
+                  color:
+                      uiProvider.isLightTheme ? Colors.white : Colors.grey[900],
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      UserAccountsDrawerHeader(
+                        decoration: BoxDecoration(color: Colors.black),
+                        accountEmail: widget.user.email != null
+                            ? Text(widget.user.email)
+                            : SizedBox.shrink(),
+                        accountName: widget.user.displayName != null
+                            ? Text(
+                                widget.user.displayName,
+                                style: TextStyle(
+                                    fontSize: 18, fontWeight: FontWeight.w600),
+                              )
+                            : SizedBox.shrink(),
+                        currentAccountPicture: CircleAvatar(
+                            backgroundColor: Colors.black,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(45.0),
+                              child: widget.user.photoUrl != null
+                                  ? Image.network(
+                                      widget.user.photoUrl,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : CircleAvatar(
+                                      backgroundColor: Colors.grey[300],
+                                      radius: 29,
+                                      child: Center(
+                                        child: Text(
+                                          widget.user.email
+                                              .substring(0, 1)
+                                              .toLowerCase(),
+                                          style: TextStyle(
+                                              color: Colors.black,
+                                              fontSize: 32,
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                    ),
+                            )),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(
+                            top: 5.0, bottom: 5.0, left: 14.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              "budgets",
+                              style: TextStyle(
+                                  fontSize: 22.0,
+                                  fontWeight: FontWeight.w700,
+                                  color: uiProvider.isLightTheme
+                                      ? Colors.black87
+                                      : Colors.grey),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 5.0),
+                              child: Text(
+                                "${budgetProvider.budgetList.length.toString()}",
+                                style: TextStyle(
+                                    fontSize: 22.0,
+                                    fontWeight: FontWeight.w700,
+                                    color: uiProvider.isLightTheme
+                                        ? Colors.grey[500]
+                                        : Colors.white),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Divider(
+                        color: Colors.grey[500],
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(
+                            top: 5.0, bottom: 5.0, left: 14.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              "total spent",
+                              style: TextStyle(
+                                  fontSize: 22.0,
+                                  fontWeight: FontWeight.w700,
+                                  color: uiProvider.isLightTheme
+                                      ? Colors.black87
+                                      : Colors.grey),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 5.0),
+                              child: Text(
+                                "${_currency.format(totalAmountSpent(budgetProvider))}",
+                                style: TextStyle(
+                                    fontSize: 22.0,
+                                    fontWeight: FontWeight.w700,
+                                    color: uiProvider.isLightTheme
+                                        ? Colors.grey[500]
+                                        : Colors.white),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Divider(
+                        color: Colors.grey[500],
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(
+                            top: 5.0, bottom: 5.0, left: 14.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              "total left",
+                              style: TextStyle(
+                                  fontSize: 22.0,
+                                  fontWeight: FontWeight.w700,
+                                  color: uiProvider.isLightTheme
+                                      ? Colors.black87
+                                      : Colors.grey),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 5.0),
+                              child: Text(
+                                "${_currency.format(totalAmountLeft(budgetProvider))}",
+                                style: TextStyle(
+                                    fontSize: 22.0,
+                                    fontWeight: FontWeight.w700,
+                                    color: uiProvider.isLightTheme
+                                        ? Colors.grey[500]
+                                        : Colors.white),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Divider(
+                        color: Colors.grey[500],
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(
+                            top: 5.0, bottom: 5.0, left: 14.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              "theme",
+                              style: TextStyle(
+                                  fontSize: 22.0,
+                                  fontWeight: FontWeight.w700,
+                                  color: uiProvider.isLightTheme
+                                      ? Colors.black87
+                                      : Colors.grey),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: Row(
+                                children: <Widget>[
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 5.0),
+                                    child: CircleAvatar(
+                                      backgroundColor: uiProvider.isLightTheme
+                                          ? Colors.transparent
+                                          : Color(0xffd57eeb),
+                                      radius: 30,
+                                      child: FloatingActionButton(
+                                        tooltip: "Dark",
+                                        mini: true,
+                                        elevation: 0.0,
+                                        backgroundColor: Colors.black87,
+                                        child: Icon(Icons.brightness_2),
+                                        onPressed: () {
+                                          setState(() {
+                                            uiProvider.isLightTheme = false;
+                                            _preferences.setBool("theme",
+                                                uiProvider.isLightTheme);
+                                          });
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                  CircleAvatar(
+                                    backgroundColor: uiProvider.isLightTheme
+                                        ? Color(0xffd57eeb)
+                                        : Colors.transparent,
+                                    radius: 30,
+                                    child: FloatingActionButton(
+                                      tooltip: "Light",
+                                      mini: true,
+                                      elevation: 0.0,
+                                      backgroundColor: Colors.grey[200],
+                                      child: Icon(
+                                        Icons.wb_sunny,
+                                        color: Colors.grey,
+                                      ),
+                                      onPressed: () {
+                                        setState(() {
+                                          uiProvider.isLightTheme = true;
+                                          _preferences.setBool(
+                                              "theme", uiProvider.isLightTheme);
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.bottomLeft,
+                          child: Padding(
+                            padding:
+                                const EdgeInsets.only(left: 14.0, bottom: 16),
+                            child: FloatingActionButton(
+                              tooltip: "Signout",
+                              elevation: 0,
+                              backgroundColor: Colors.grey[300],
+                              foregroundColor: Colors.black87,
+                              child: RotationTransition(
+                                  turns: new AlwaysStoppedAnimation(180 / 360),
+                                  child: Icon(
+                                    Icons.exit_to_app,
+                                  )),
+                              onPressed: () {
+                                showAlertDialog(context, "Signout",
+                                    "Are you sure you want to signout?", [
+                                  FlatButton(
+                                    child: Text(
+                                      'Cancel',
+                                      style: TextStyle(color: Colors.grey),
+                                    ),
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                    },
+                                  ),
+                                  FlatButton(
+                                    child: Text(
+                                      'Signout',
+                                      style: TextStyle(
+                                          color: uiProvider.isLightTheme
+                                              ? Colors.black
+                                              : Colors.white),
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        uiProvider.isLoading = true;
+                                      });
+                                      _signOut();
+                                    },
+                                  )
+                                ]);
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+            body: FutureBuilder(
+                future: storageProvider.storage.ready,
+                builder: (BuildContext context, AsyncSnapshot snapshot) {
+                  if (snapshot.data == null) {
+                    return Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.black.withOpacity(0.5)),
+                      ),
+                    );
+                  }
+
+                  if (!_initialized) {
+                    _getLocalStorageForNotAcceptedSharedBudgets();
+                    _initialized = true;
+                  }
+
+                  return _showBudgetList();
+                }),
+            floatingActionButton: FloatingActionButton(
+              backgroundColor: uiProvider.isLightTheme
+                  ? Colors.white.withOpacity(0.5)
+                  : Colors.black.withOpacity(0.5),
+              child: Icon(
+                Icons.add,
+                size: 28,
+                color:
+                    uiProvider.isLightTheme ? Colors.grey[800] : Colors.white,
+              ),
+              elevation: 0,
+              onPressed: () {
+                authProvider.auth = widget.auth;
+                Navigator.of(context).push(CupertinoPageRoute(
+                    fullscreenDialog: true,
+                    builder: (context) => CreateBudgetScreen(
+                          user: widget.user,
+                        )));
+              },
+            ),
+          ),
+        ]));
   }
 }

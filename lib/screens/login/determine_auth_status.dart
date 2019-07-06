@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:Groovy/models/user.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -64,9 +65,7 @@ class _DetermineAuthStatusScreenState extends State<DetermineAuthStatusScreen> {
 
   createUser() async {
     var token = await _firebaseMessaging.getToken();
-    var platform = Theme.of(context).platform == TargetPlatform.android
-        ? "android"
-        : "iOS";
+    var platform = Platform.isAndroid ? "android" : "iOS";
 
     List<String> tokenPlatform = [];
     tokenPlatform.add("$token&&platform===>$platform");
