@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:Groovy/providers/auth_provider.dart';
 import 'package:Groovy/providers/budget_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
+import 'package:Groovy/providers/user_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
@@ -10,7 +11,9 @@ import 'package:provider/provider.dart';
 import '../shared/utilities.dart';
 
 class AddPurchaseScreen extends StatefulWidget {
-  AddPurchaseScreen({Key key}) : super(key: key);
+  AddPurchaseScreen({Key key, this.user}) : super(key: key);
+
+  final FirebaseUser user;
 
   @override
   State<StatefulWidget> createState() => _AddPurchaseScreen();
@@ -68,6 +71,7 @@ class _AddPurchaseScreen extends State<AddPurchaseScreen> {
     var authProvider = Provider.of<AuthProvider>(context);
     var uiProvider = Provider.of<UIProvider>(context);
     var budgetProvider = Provider.of<BudgetProvider>(context);
+    var userProvider = Provider.of<UserProvider>(context);
 
     // Check if purchase form is valid before adding purchase
     bool _validateAndSavePurchase() {
@@ -97,8 +101,8 @@ class _AddPurchaseScreen extends State<AddPurchaseScreen> {
         budgetProvider.selectedBudget.left -= num.parse(_amount);
         budgetProvider.selectedBudget.history = history;
         budgetProvider.selectedBudget.userDate = userDate;
-        authProvider.auth
-            .updateBudget(_database, budgetProvider.selectedBudget);
+        authProvider.auth.updateBudget(
+            _database, userProvider.currentUser, budgetProvider.selectedBudget);
         Navigator.of(context).pop();
       }
     }

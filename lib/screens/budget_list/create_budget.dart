@@ -1,7 +1,7 @@
 import 'dart:ui';
+import 'package:Groovy/models/user.dart';
 import 'package:Groovy/providers/auth_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,7 +11,7 @@ import '../shared/utilities.dart';
 class CreateBudgetScreen extends StatefulWidget {
   CreateBudgetScreen({Key key, this.user}) : super(key: key);
 
-  final FirebaseUser user;
+  final User user;
 
   @override
   State<StatefulWidget> createState() => _CreateBudgetScreen();

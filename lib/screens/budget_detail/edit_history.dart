@@ -2,6 +2,8 @@ import 'dart:ui';
 import 'package:Groovy/providers/auth_provider.dart';
 import 'package:Groovy/providers/budget_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
+import 'package:Groovy/providers/user_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,9 +11,10 @@ import 'package:provider/provider.dart';
 import '../shared/utilities.dart';
 
 class EditHistoryScreen extends StatefulWidget {
-  EditHistoryScreen({Key key, this.history}) : super(key: key);
+  EditHistoryScreen({Key key, this.history, this.user}) : super(key: key);
 
   final String history;
+  final FirebaseUser user;
 
   @override
   State<StatefulWidget> createState() => _EditHistoryScreen();
@@ -70,6 +73,7 @@ class _EditHistoryScreen extends State<EditHistoryScreen> {
     var authProvider = Provider.of<AuthProvider>(context);
     var uiProvider = Provider.of<UIProvider>(context);
     var budgetProvider = Provider.of<BudgetProvider>(context);
+    var userProvider = Provider.of<UserProvider>(context);
 
     // Check if edit form is valid
     bool _validateAndSaveEditHistory() {
@@ -108,8 +112,8 @@ class _EditHistoryScreen extends State<EditHistoryScreen> {
         budgetProvider.selectedBudget.left =
             budgetProvider.selectedBudget.setAmount - newAmountSpent;
 
-        authProvider.auth
-            .updateBudget(_database, budgetProvider.selectedBudget);
+        authProvider.auth.updateBudget(
+            _database, userProvider.currentUser, budgetProvider.selectedBudget);
         Navigator.of(context).pop();
       }
     }

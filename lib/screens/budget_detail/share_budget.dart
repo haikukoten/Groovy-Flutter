@@ -5,7 +5,6 @@ import 'package:Groovy/providers/ui_provider.dart';
 import 'package:Groovy/providers/user_provider.dart';
 import 'package:Groovy/screens/shared/swipe_actions/swipe_widget.dart';
 import 'package:Groovy/services/auth.dart';
-import 'package:Groovy/services/notification.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -33,7 +32,6 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
   TextEditingController _shareBudgetEmailTextController =
       TextEditingController();
   FocusNode _shareBudgetFocusNode = FocusNode();
-  SendNotification notification = SendNotification();
 
   double _initialDragAmount;
   double _finalDragAmount;
@@ -61,38 +59,6 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
     var budgetProvider = Provider.of<BudgetProvider>(context);
     var userProvider = Provider.of<UserProvider>(context);
 
-    _sendNotification() {
-      userProvider.userList.forEach((user) {
-        if (user.email.toLowerCase() == _email.toLowerCase()) {
-          print(user.toString());
-          user.tokenPlatform.forEach((tokenPlatform) {
-            Map<String, Object> data;
-            var token = tokenPlatform.split("&&platform===>")[0];
-            var platform = tokenPlatform.split("&&platform===>")[1];
-            if (platform == "android") {
-              data = notification.createData(
-                  "",
-                  "${widget.user.displayName} shared a budget with you 💸",
-                  {
-                    "click_action": "FLUTTER_NOTIFICATION_CLICK",
-                  },
-                  token);
-            }
-            // iOS
-            else {
-              data = notification.createData(
-                  "",
-                  "${widget.user.displayName} shared a budget with you 💸",
-                  {},
-                  token);
-            }
-
-            notification.send(data);
-          });
-        }
-      });
-    }
-
     // Check if share form is valid
     bool _validateAndSaveShare() {
       final form = _shareBudgetFormKey.currentState;
@@ -108,27 +74,20 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
         budgetProvider.selectedBudget.isShared = true;
 
         var newSharedWith = [];
-        for (String sharedWithEmail
-            in budgetProvider.selectedBudget.sharedWith) {
-          newSharedWith.add(sharedWithEmail);
-        }
 
-        if (newSharedWith[0] == "none") {
-          newSharedWith[0] = widget.user.email;
+        if (budgetProvider.selectedBudget.sharedWith != null) {
+          for (String sharedWithEmail
+              in budgetProvider.selectedBudget.sharedWith) {
+            newSharedWith.add(sharedWithEmail);
+          }
         }
 
         // Add new email
         newSharedWith.add(_email.toLowerCase());
 
-        // Add display name of user sharing the budget for alert
-        var newSharedName = "${widget.user.displayName}";
-
         budgetProvider.selectedBudget.sharedWith = newSharedWith;
-        budgetProvider.selectedBudget.sharedName = newSharedName;
-        widget.auth.updateBudget(_database, budgetProvider.selectedBudget);
-
-        // send notification
-        _sendNotification();
+        widget.auth.updateBudget(
+            _database, userProvider.currentUser, budgetProvider.selectedBudget);
       }
     }
 
@@ -141,16 +100,12 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
       newSharedWith.remove(email);
 
       if (newSharedWith.length == 1) {
-        newSharedWith[0] = "none";
         budgetProvider.selectedBudget.isShared = false;
       }
 
-      // Remove display name of user that shared budget
-      var newSharedName = "none";
-
       budgetProvider.selectedBudget.sharedWith = newSharedWith;
-      budgetProvider.selectedBudget.sharedName = newSharedName;
-      widget.auth.updateBudget(_database, budgetProvider.selectedBudget);
+      widget.auth.updateBudget(
+          _database, userProvider.currentUser, budgetProvider.selectedBudget);
     }
 
     Widget _showIcon() {
@@ -207,7 +162,8 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
               textCapitalization: TextCapitalization.none,
               focusNode: _shareBudgetFocusNode,
               controller: _shareBudgetEmailTextController,
-              autofocus: (budgetProvider.selectedBudget.sharedWith.length > 1)
+              autofocus: (budgetProvider.selectedBudget.sharedWith != null &&
+                      budgetProvider.selectedBudget.sharedWith.length > 1)
                   ? false
                   : true,
               decoration: InputDecoration(
@@ -235,6 +191,12 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
                 if (EmailValidator.validate(value) != true) {
                   return 'Invalid email address';
                 }
+
+                if (budgetProvider.selectedBudget.sharedWith != null &&
+                    budgetProvider.selectedBudget.sharedWith
+                        .contains(value.toLowerCase())) {
+                  return 'Budget shared with user already';
+                }
               },
               onFieldSubmitted: (value) {
                 _shareBudget();
@@ -248,7 +210,8 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
     }
 
     Widget _showSharedWithText() {
-      return (budgetProvider.selectedBudget.sharedWith.length > 1)
+      return (budgetProvider.selectedBudget.sharedWith != null &&
+              budgetProvider.selectedBudget.sharedWith.length > 1)
           ? Padding(
               padding: const EdgeInsets.fromLTRB(0, 42.0, 0, 0),
               child: Container(
@@ -268,7 +231,8 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
     }
 
     Widget _showSharedWithList() {
-      if (budgetProvider.selectedBudget.sharedWith.length > 1) {
+      if (budgetProvider.selectedBudget.sharedWith != null &&
+          budgetProvider.selectedBudget.sharedWith.length > 1) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
@@ -287,7 +251,7 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
                   itemCount: budgetProvider.selectedBudget.sharedWith.length,
                   itemBuilder: (BuildContext context, int index) {
                     if (budgetProvider.selectedBudget.isShared &&
-                        budgetProvider.selectedBudget.sharedWith[0] != "none") {
+                        budgetProvider.selectedBudget.sharedWith.length > 1) {
                       String email =
                           budgetProvider.selectedBudget.sharedWith[index];
                       return email == widget.budget.createdBy

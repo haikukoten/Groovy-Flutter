@@ -11,17 +11,21 @@ import 'package:flutter_facebook_login/flutter_facebook_login.dart';
 
 abstract class BaseAuth {
   Future<void> createBudget(
-      FirebaseDatabase database, FirebaseUser user, String name, String amount);
+      FirebaseDatabase database, User user, String name, String amount);
 
-  Future<void> updateBudget(FirebaseDatabase database, Budget budget);
+  Future<void> updateBudget(
+      FirebaseDatabase database, User user, Budget budget);
 
-  Future<void> deleteBudget(FirebaseDatabase database, Budget budget);
+  Future<void> deleteBudget(
+      FirebaseDatabase database, User user, Budget budget);
 
   Future<void> createUser(FirebaseDatabase database, User user);
 
-  Future<void> updateUser(FirebaseDatabase database, User user);
+  Future<void> updateUser(
+      FirebaseDatabase database, FirebaseUser firebaseUser, User user);
 
-  Future<void> deleteUser(FirebaseDatabase database, User user);
+  Future<void> deleteUser(
+      FirebaseDatabase database, FirebaseUser firebaseUser, User user);
 
   Future<FirebaseUser> googleSignIn();
 
@@ -49,43 +53,51 @@ class Auth implements BaseAuth {
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FacebookLogin _facebookLogin = FacebookLogin();
 
-  Future<void> createBudget(FirebaseDatabase database, FirebaseUser user,
-      String name, String amount) async {
+  Future<void> createBudget(
+      FirebaseDatabase database, User user, String name, String amount) async {
     if (name.length > 0) {
-      // Putting "none" values is not ideal, but unfortunately the old app design was made in such a way that it expects these values.
-      // In order for users of the old version of the app to continue without unexpected results, "none" values have been added.
+      // TODO: Create 'transfer budgets' function from old version of app to new version
+      // so users can get their old budgets on the new app architecture
       Budget budget = new Budget(
           createdBy: user.email,
-          hiddenFrom: ["none"],
-          history: ["none:none"],
+          hiddenFrom: [],
+          history: [],
           isShared: false,
           left: num.parse(amount),
           name: name,
           setAmount: num.parse(amount),
-          sharedWith: ["none"],
+          sharedWith: [user.email],
           spent: 0,
-          userDate: ["none:none"]);
+          userDate: []);
       return await database
           .reference()
+          .child("users")
+          .child(user.key)
           .child("budgets")
           .push()
           .set(budget.toJson());
     }
   }
 
-  Future<void> updateBudget(FirebaseDatabase database, Budget budget) async {
+  Future<void> updateBudget(
+      FirebaseDatabase database, User user, Budget budget) async {
     if (budget != null) {
       return await database
           .reference()
+          .child("users")
+          .child(user.key)
           .child("budgets")
           .child(budget.key)
           .set(budget.toJson());
     }
   }
 
-  Future<void> deleteBudget(FirebaseDatabase database, Budget budget) async {
+  Future<void> deleteBudget(
+      FirebaseDatabase database, User user, Budget budget) async {
     return await database
         .reference()
+        .child("users")
+        .child(user.key)
         .child("budgets")
         .child(budget.key)
         .remove();
@@ -95,16 +107,22 @@ class Auth implements BaseAuth {
     return await database.reference().child("users").push().set(user.toJson());
   }
 
-  Future<void> updateUser(FirebaseDatabase database, User user) async {
+  Future<void> updateUser(
+      FirebaseDatabase database, FirebaseUser firebaseUser, User user) async {
     return await database
         .reference()
         .child("users")
-        .child(user.key)
+        .child(firebaseUser.uid)
         .set(user.toJson());
   }
 
-  Future<void> deleteUser(FirebaseDatabase database, User user) async {
-    return await database.reference().child("users").child(user.key).remove();
+  Future<void> deleteUser(
+      FirebaseDatabase database, FirebaseUser firebaseUser, User user) async {
+    return await database
+        .reference()
+        .child("users")
+        .child(firebaseUser.uid)
+        .remove();
   }
 
   Future<FirebaseUser> googleSignIn() async {

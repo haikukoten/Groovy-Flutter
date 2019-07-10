@@ -3,7 +3,9 @@ import 'package:Groovy/models/budget.dart';
 import 'package:Groovy/providers/auth_provider.dart';
 import 'package:Groovy/providers/budget_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
+import 'package:Groovy/providers/user_provider.dart';
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,9 +13,10 @@ import 'package:provider/provider.dart';
 import '../shared/utilities.dart';
 
 class EditBudgetScreen extends StatefulWidget {
-  EditBudgetScreen({Key key, this.budget}) : super(key: key);
+  EditBudgetScreen({Key key, this.budget, this.user}) : super(key: key);
 
   final Budget budget;
+  final FirebaseUser user;
 
   @override
   State<StatefulWidget> createState() => _EditBudgetScreen();
@@ -69,6 +72,7 @@ class _EditBudgetScreen extends State<EditBudgetScreen> {
     var authProvider = Provider.of<AuthProvider>(context);
     var uiProvider = Provider.of<UIProvider>(context);
     var budgetProvider = Provider.of<BudgetProvider>(context);
+    var userProvider = Provider.of<UserProvider>(context);
 
     // Check if edit form is valid
     bool _validateAndSaveEdit() {
@@ -85,8 +89,8 @@ class _EditBudgetScreen extends State<EditBudgetScreen> {
         budgetProvider.selectedBudget.left =
             budgetProvider.selectedBudget.setAmount -
                 budgetProvider.selectedBudget.spent;
-        authProvider.auth
-            .updateBudget(_database, budgetProvider.selectedBudget);
+        authProvider.auth.updateBudget(
+            _database, userProvider.currentUser, budgetProvider.selectedBudget);
         Navigator.of(context).pop();
       }
     }
@@ -97,7 +101,8 @@ class _EditBudgetScreen extends State<EditBudgetScreen> {
           budgetProvider.selectedBudget.setAmount;
       budgetProvider.selectedBudget.history = ["none:none"];
       budgetProvider.selectedBudget.userDate = ["none:none"];
-      authProvider.auth.updateBudget(_database, budgetProvider.selectedBudget);
+      authProvider.auth.updateBudget(
+          _database, userProvider.currentUser, budgetProvider.selectedBudget);
       Navigator.of(context).pop();
       Navigator.of(context).pop();
     }

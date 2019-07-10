@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:Groovy/providers/auth_provider.dart';
 import 'package:Groovy/providers/budget_provider.dart';
+import 'package:Groovy/providers/user_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
@@ -46,6 +47,7 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
     var authProvider = Provider.of<AuthProvider>(context);
     var uiProvider = Provider.of<UIProvider>(context);
     var budgetProvider = Provider.of<BudgetProvider>(context);
+    var userProvider = Provider.of<UserProvider>(context);
 
     void _deleteBudget(Budget budget) async {
       showAlertDialog(context, "Delete ${budget.name}",
@@ -66,9 +68,10 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
                 color: uiProvider.isLightTheme ? Colors.black : Colors.white),
           ),
           onPressed: () {
-            authProvider.auth.deleteBudget(_database, budget);
+            authProvider.auth
+                .deleteBudget(_database, userProvider.currentUser, budget);
             print("Delete ${budget.key} successful");
-            budgetProvider.budgetList.remove(budget);
+            userProvider.currentUser.budgets.remove(budget);
             Navigator.of(context).pop();
             Navigator.of(context).pop();
           },
@@ -260,6 +263,7 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
                             fullscreenDialog: true,
                             builder: (context) => BudgetHistoryScreen(
                                   budget: budgetProvider.selectedBudget,
+                                  user: widget.user,
                                 )));
                       },
                     ),
@@ -289,6 +293,7 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
                             fullscreenDialog: true,
                             builder: (context) => EditBudgetScreen(
                                   budget: budgetProvider.selectedBudget,
+                                  user: widget.user,
                                 )));
                       },
                     ),
@@ -334,7 +339,9 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
           if (_finalDragAmount < 0) {
             Navigator.of(context).push(CupertinoPageRoute(
                 fullscreenDialog: true,
-                builder: (context) => AddPurchaseScreen()));
+                builder: (context) => AddPurchaseScreen(
+                      user: widget.user,
+                    )));
           }
 
           // Swipe down to show modal menu

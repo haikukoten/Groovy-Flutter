@@ -1,7 +1,6 @@
-import 'package:firebase_database/firebase_database.dart';
-
 class Budget {
   String key;
+  String shareKey;
   String createdBy;
   List<dynamic> hiddenFrom;
   List<dynamic> history;
@@ -10,12 +9,12 @@ class Budget {
   String name;
   num setAmount;
   List<dynamic> sharedWith;
-  String sharedName;
   num spent;
   List<dynamic> userDate;
 
   Budget({
     this.key,
+    this.shareKey,
     this.createdBy,
     this.hiddenFrom,
     this.history,
@@ -24,27 +23,28 @@ class Budget {
     this.name,
     this.setAmount,
     this.sharedWith,
-    this.sharedName,
     this.spent,
     this.userDate,
   });
 
-  Budget.fromSnapshot(DataSnapshot snapshot)
-      : key = snapshot.key,
-        createdBy = snapshot.value["createdBy"],
-        hiddenFrom = snapshot.value["hiddenFrom"],
-        history = snapshot.value["history"],
-        isShared = snapshot.value["isShared"],
-        left = snapshot.value["left"],
-        name = snapshot.value["name"],
-        setAmount = snapshot.value["setAmount"],
-        sharedWith = snapshot.value["sharedWith"],
-        sharedName = snapshot.value["sharedName"] ?? "none",
-        spent = snapshot.value["spent"],
-        userDate = snapshot.value["userDate"];
+  Budget.fromMap(Map map) {
+    key = map["key"];
+    shareKey = map["shareKey"];
+    createdBy = map["createdBy"];
+    hiddenFrom = map["hiddenFrom"];
+    history = map["history"];
+    isShared = map["isShared"];
+    left = map["left"];
+    name = map["name"];
+    setAmount = map["setAmount"];
+    sharedWith = map["sharedWith"];
+    spent = map["spent"];
+    userDate = map["userDate"];
+  }
 
   Budget.fromJson(Map<String, dynamic> json)
       : key = json['key'] as String,
+        shareKey = json['shareKey'] as String,
         createdBy = json['createdBy'] as String,
         hiddenFrom = json['hiddenFrom'] as List<dynamic>,
         history = json['history'] as List<dynamic>,
@@ -53,13 +53,13 @@ class Budget {
         name = json['name'] as String,
         setAmount = json['setAmount'] as num,
         sharedWith = json['sharedWith'] as List<dynamic>,
-        sharedName = json['sharedName'] as String,
         spent = json['spent'] as num,
         userDate = json['userDate'] as List<dynamic>;
 
   toJson() {
     return {
       "key": key,
+      "shareKey": shareKey,
       "createdBy": createdBy,
       "hiddenFrom": hiddenFrom,
       "history": history,
@@ -68,9 +68,12 @@ class Budget {
       "name": name,
       "setAmount": setAmount,
       "sharedWith": sharedWith,
-      "sharedName": sharedName,
       "spent": spent,
       "userDate": userDate,
     };
+  }
+
+  String toString() {
+    return "key: $key, name: $name, createdBy: $createdBy, left: $left, setAmount: $setAmount, spent: $spent";
   }
 }

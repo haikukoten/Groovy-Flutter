@@ -1,12 +1,8 @@
-import 'dart:io';
-import 'package:Groovy/models/user.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:Groovy/screens/login/choose_login.dart';
 import 'package:Groovy/services/auth.dart';
 import 'package:Groovy/screens/budget_list/budget_list.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_database/firebase_database.dart';
 
 class DetermineAuthStatusScreen extends StatefulWidget {
   DetermineAuthStatusScreen({this.auth});
@@ -25,8 +21,6 @@ enum AuthStatus {
 
 class _DetermineAuthStatusScreenState extends State<DetermineAuthStatusScreen> {
   AuthStatus authStatus = AuthStatus.NOT_DETERMINED;
-  final FirebaseDatabase _database = FirebaseDatabase.instance;
-  FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
   FirebaseUser _user;
 
   @override
@@ -49,7 +43,6 @@ class _DetermineAuthStatusScreenState extends State<DetermineAuthStatusScreen> {
       setState(() {
         _user = user;
       });
-      createUser();
     });
     setState(() {
       authStatus = AuthStatus.LOGGED_IN;
@@ -61,21 +54,6 @@ class _DetermineAuthStatusScreenState extends State<DetermineAuthStatusScreen> {
       authStatus = AuthStatus.NOT_LOGGED_IN;
       _user = null;
     });
-  }
-
-  createUser() async {
-    var token = await _firebaseMessaging.getToken();
-    var platform = Platform.isAndroid ? "android" : "iOS";
-
-    List<String> tokenPlatform = [];
-    tokenPlatform.add("$token&&platform===>$platform");
-    widget.auth.createUser(
-        _database,
-        User(
-            email: _user.email,
-            name: _user.displayName,
-            isPaid: false,
-            tokenPlatform: tokenPlatform));
   }
 
   Widget _buildWaitingScreen() {

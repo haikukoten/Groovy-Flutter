@@ -3,8 +3,10 @@ import 'package:Groovy/models/budget.dart';
 import 'package:Groovy/providers/auth_provider.dart';
 import 'package:Groovy/providers/budget_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
+import 'package:Groovy/providers/user_provider.dart';
 import 'package:Groovy/screens/budget_detail/edit_history.dart';
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -14,9 +16,10 @@ import '../shared/swipe_actions/swipe_widget.dart';
 import '../shared/utilities.dart';
 
 class BudgetHistoryScreen extends StatefulWidget {
-  BudgetHistoryScreen({Key key, this.budget}) : super(key: key);
+  BudgetHistoryScreen({Key key, this.budget, this.user}) : super(key: key);
 
   final Budget budget;
+  final FirebaseUser user;
 
   @override
   State<StatefulWidget> createState() => _BudgetHistoryScreen();
@@ -40,6 +43,7 @@ class _BudgetHistoryScreen extends State<BudgetHistoryScreen> {
     var authProvider = Provider.of<AuthProvider>(context);
     var uiProvider = Provider.of<UIProvider>(context);
     var budgetProvider = Provider.of<BudgetProvider>(context);
+    var userProvider = Provider.of<UserProvider>(context);
     final dateFormat = new DateFormat('MM/dd/yy');
 
     _deleteHistoryItem(String history, String userDate, num amount) async {
@@ -60,7 +64,8 @@ class _BudgetHistoryScreen extends State<BudgetHistoryScreen> {
       budgetProvider.selectedBudget.spent -= amount;
       budgetProvider.selectedBudget.left += amount;
 
-      authProvider.auth.updateBudget(_database, budgetProvider.selectedBudget);
+      authProvider.auth.updateBudget(
+          _database, userProvider.currentUser, budgetProvider.selectedBudget);
     }
 
     void _showDeleteHistoryDialog(
@@ -157,8 +162,7 @@ class _BudgetHistoryScreen extends State<BudgetHistoryScreen> {
                               onPress: () {
                                 Navigator.of(context).push(MaterialPageRoute(
                                     builder: (context) => EditHistoryScreen(
-                                          history: history,
-                                        )));
+                                        history: history, user: widget.user)));
                               },
                               backgroundColor: Colors.transparent),
                           new ActionItems(
@@ -172,7 +176,7 @@ class _BudgetHistoryScreen extends State<BudgetHistoryScreen> {
                               ),
                               onPress: () {
                                 _showDeleteHistoryDialog(
-                                    budgetProvider.budgetList[index],
+                                    budgetProvider.selectedBudget,
                                     currency.format(amount),
                                     amount,
                                     user,
@@ -260,7 +264,7 @@ class _BudgetHistoryScreen extends State<BudgetHistoryScreen> {
                                     onPressed: () {
                                       Navigator.pop(context);
                                       _showDeleteHistoryDialog(
-                                          budgetProvider.budgetList[index],
+                                          budgetProvider.selectedBudget,
                                           currency.format(amount),
                                           amount,
                                           user,

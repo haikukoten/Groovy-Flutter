@@ -26,7 +26,6 @@ import '../shared/swipe_actions/swipe_widget.dart';
 import '../shared/animated/background.dart';
 import '../shared/utilities.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:overlay_support/overlay_support.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 
 class BudgetListScreen extends StatefulWidget {
@@ -45,13 +44,9 @@ class _BudgetListScreen extends State<BudgetListScreen> {
   GlobalKey _drawerKey = GlobalKey();
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
-  Query _budgetQuery;
-  Query _usersQuery;
+  Query _userQuery;
   final _currency = NumberFormat.simpleCurrency();
   SharedPreferences _preferences;
-
-  StreamSubscription<Event> _onBudgetAddedSubscription;
-  StreamSubscription<Event> _onBudgetChangedSubscription;
 
   StreamSubscription<Event> _onUserAddedSubscription;
   StreamSubscription<Event> _onUserChangedSubscription;
@@ -72,17 +67,15 @@ class _BudgetListScreen extends State<BudgetListScreen> {
 
     _getSavedPreferences();
 
-    _budgetQuery = _database.reference().child("budgets");
-    _usersQuery = _database.reference().child("users");
+    _userQuery = _database
+        .reference()
+        .child("users")
+        .orderByChild("email")
+        .equalTo(widget.user.email);
 
-    _onBudgetAddedSubscription =
-        _budgetQuery.onChildAdded.listen(_onEntryAdded);
-    _onBudgetChangedSubscription =
-        _budgetQuery.onChildChanged.listen(_onEntryChanged);
-
-    _onUserAddedSubscription = _usersQuery.onChildAdded.listen(_onUserAdded);
+    _onUserAddedSubscription = _userQuery.onChildAdded.listen(_onUserAdded);
     _onUserChangedSubscription =
-        _usersQuery.onChildChanged.listen(_onUserChanged);
+        _userQuery.onChildChanged.listen(_onUserChanged);
 
     // Handle FCM
     fcmListeners();
@@ -90,8 +83,6 @@ class _BudgetListScreen extends State<BudgetListScreen> {
 
   @override
   void dispose() {
-    _onBudgetAddedSubscription.cancel();
-    _onBudgetChangedSubscription.cancel();
     _onUserAddedSubscription.cancel();
     _onUserChangedSubscription.cancel();
     super.dispose();
@@ -153,219 +144,53 @@ class _BudgetListScreen extends State<BudgetListScreen> {
     }
   }
 
-  _onEntryChanged(Event event) {
-    Budget budget = Budget.fromSnapshot(event.snapshot);
-    var budgetProvider = Provider.of<BudgetProvider>(context);
-    var uiProvider = Provider.of<UIProvider>(context);
-    var storageProvider = Provider.of<StorageProvider>(context);
-
-    // Update budget if it was created by signed in user
-    if (event.snapshot.value["createdBy"] == widget.user.email) {
-      var oldBudget = budgetProvider.budgetList.singleWhere((budget) {
-        return budget.key == event.snapshot.key;
-      });
-
-      setState(() {
-        budgetProvider
-                .budgetList[budgetProvider.budgetList.indexOf(oldBudget)] =
-            Budget.fromSnapshot(event.snapshot);
-      });
-
-      // Update budget if it was not created by signed in user (budget shared with user)
-    } else if (event.snapshot.value["sharedWith"].contains(widget.user.email)) {
-      try {
-        // Shared budget got changed so update it
-        var oldBudget = budgetProvider.budgetList.singleWhere((budget) {
-          return budget.key == event.snapshot.key;
-        });
-        setState(() {
-          budgetProvider
-                  .budgetList[budgetProvider.budgetList.indexOf(oldBudget)] =
-              Budget.fromSnapshot(event.snapshot);
-        });
-      } catch (e) {
-        // Budget just got shared with signed in user so add it to list
-
-        setState(() {
-          budgetProvider.budgetList.add(budget);
-          // Sort budgets alphabetically
-          budgetProvider.budgetList.sort((a, b) => a.name.compareTo(b.name));
-        });
-
-        // If user is logged in, show alert that budget has been shared with user
-        var notificationMessage = budget.sharedName == "none"
-            ? "New shared budget"
-            : "${budget.sharedName} shared a budget with you";
-        showSimpleNotification(
-            Text(
-              notificationMessage,
-              style: TextStyle(
-                  color: uiProvider.isLightTheme ? Colors.black : Colors.white,
-                  fontWeight: FontWeight.bold),
-            ),
-            background: uiProvider.isLightTheme ? Colors.white : Colors.black);
-
-        // Save new shared budget in localstorage so user can determine if they want to accept or decline
-        if (budgetProvider.notAcceptedSharedBudgets.isEmpty) {
-          budgetProvider.notAcceptedSharedBudgets.add(budget);
-          storageProvider.saveItemToStorage(
-              budgetProvider,
-              budgetProvider.notAcceptedSharedBudgets,
-              'notAcceptedSharedBudgets');
-        } else {
-          for (Budget sharedBudget in budgetProvider.notAcceptedSharedBudgets) {
-            if (sharedBudget.key != budget.key) {
-              budgetProvider.notAcceptedSharedBudgets.add(budget);
-              storageProvider.saveItemToStorage(
-                  budgetProvider,
-                  budgetProvider.notAcceptedSharedBudgets,
-                  'notAcceptedSharedBudgets');
-            }
-          }
-        }
-      }
-      // User is no longer shared with budget so remove it
-    } else {
-      if (!budget.sharedWith.contains(widget.user.email)) {
-        for (Budget userBudget in budgetProvider.budgetList) {
-          if (userBudget.key == budget.key) {
-            setState(() {
-              budgetProvider.budgetList.remove(userBudget);
-            });
-          }
-        }
-      }
-
-      // Remove budget from not accepted shared budgets if it exists
-      budgetProvider.removeNotAcceptedBudget(budget);
-      storageProvider.saveItemToStorage(budgetProvider,
-          budgetProvider.notAcceptedSharedBudgets, 'notAcceptedSharedBudgets');
-    }
-  }
-
-  _onEntryAdded(Event event) {
-    var budgetProvider = Provider.of<BudgetProvider>(context);
-    if (event.snapshot.value["createdBy"] == widget.user.email ||
-        event.snapshot.value["sharedWith"].contains(widget.user.email)) {
-      setState(() {
-        budgetProvider.budgetList.add(Budget.fromSnapshot(event.snapshot));
-        // Sort budgets alphabetically
-        budgetProvider.budgetList.sort((a, b) => a.name.compareTo(b.name));
-      });
-    }
-  }
-
   _onUserAdded(Event event) {
     var userProvider = Provider.of<UserProvider>(context);
-    userProvider.userList.add(User.fromSnapshot(event.snapshot));
-    _updateUserOnFirebase();
+    userProvider.currentUser = User.fromSnapshot(event.snapshot);
   }
 
   _onUserChanged(Event event) {
     var userProvider = Provider.of<UserProvider>(context);
-    if (event.snapshot.value["email"] == widget.user.email) {
-      // update current user
-      currentUser = User.fromSnapshot(event.snapshot);
-      userProvider.currentUser = currentUser;
-
-      // update useres list
-      var oldUser = userProvider.userList.singleWhere((user) {
-        return user.key == event.snapshot.key;
-      });
-
-      setState(() {
-        userProvider.userList[userProvider.userList.indexOf(oldUser)] =
-            User.fromSnapshot(event.snapshot);
-      });
-    }
-  }
-
-  _updateUserOnFirebase() {
-    var userProvider = Provider.of<UserProvider>(context);
-    List<User> duplicateUsers = [];
-
-    userProvider.userList.forEach((user) {
-      if (user.email == widget.user.email) {
-        currentUser = user;
-        userProvider.currentUser = currentUser;
-        duplicateUsers.add(user);
-        if (!tokenPlatorms.contains(user.tokenPlatform.first)) {
-          tokenPlatorms.add(user.tokenPlatform.first);
-        }
-      }
+    setState(() {
+      userProvider.currentUser = User.fromSnapshot(event.snapshot);
     });
-
-    if (duplicateUsers.length == 2) {
-      duplicateUsers[0].tokenPlatform = tokenPlatorms;
-
-      userProvider.userList.forEach((user) {
-        if (user.key == duplicateUsers[1].key) {
-          widget.auth.deleteUser(_database, user);
-        }
-      });
-
-      currentUser = duplicateUsers[0];
-      userProvider.currentUser = currentUser;
-      widget.auth.updateUser(_database, duplicateUsers[0]);
-    }
   }
 
-  num totalAmountSpent(BudgetProvider budgetProvider) {
+  num totalAmountSpent(UserProvider userProvider) {
     num totalSpent = 0;
-    for (int i = 0; i < budgetProvider.budgetList.length; i++) {
-      totalSpent += budgetProvider.budgetList[i].spent;
+    for (int i = 0; i < userProvider.currentUser.budgets.length; i++) {
+      totalSpent += userProvider.currentUser.budgets[i].spent;
     }
     return totalSpent;
   }
 
-  num totalAmountBudgeted(BudgetProvider budgetProvider) {
+  num totalAmountBudgeted(UserProvider userProvider) {
     num totalBudgeted = 0;
-    if (budgetProvider.budgetList.length > 0) {
-      for (int i = 0; i < budgetProvider.budgetList.length; i++) {
-        totalBudgeted += budgetProvider.budgetList[i].setAmount;
+    if (userProvider.currentUser.budgets.length > 0) {
+      for (int i = 0; i < userProvider.currentUser.budgets.length; i++) {
+        totalBudgeted += userProvider.currentUser.budgets[i].setAmount;
       }
     }
     return totalBudgeted;
   }
 
-  num totalAmountLeft(BudgetProvider budgetProvider) {
+  num totalAmountLeft(UserProvider userProvider) {
     num totalLeft = 0;
-    if (budgetProvider.budgetList.length > 0) {
-      for (int i = 0; i < budgetProvider.budgetList.length; i++) {
-        totalLeft += budgetProvider.budgetList[i].left;
+    if (userProvider.currentUser.budgets.length > 0) {
+      for (int i = 0; i < userProvider.currentUser.budgets.length; i++) {
+        totalLeft += userProvider.currentUser.budgets[i].left;
       }
     }
     return totalLeft;
   }
 
-  _removeUserToken() async {
-    var userProvider = Provider.of<UserProvider>(context);
-    String currentTokenPlatform;
-    var token = await _firebaseMessaging.getToken();
-    var platform = Platform.isAndroid ? "android" : "iOS";
-    currentTokenPlatform = "$token&&platform===>$platform";
-
-    var tokenPlatforms = [];
-    currentUser.tokenPlatform
-        .forEach((tokenPlatform) => tokenPlatforms.add(tokenPlatform));
-
-    if (currentUser.tokenPlatform.contains(currentTokenPlatform)) {
-      print(currentUser.toString());
-      tokenPlatforms.remove(currentTokenPlatform);
-      currentUser.tokenPlatform = tokenPlatforms;
-      if (currentUser.tokenPlatform.isNotEmpty) {
-        widget.auth.updateUser(_database, currentUser);
-      } else {
-        widget.auth.deleteUser(_database, currentUser);
-      }
-    }
-
-    currentUser = User();
-    userProvider.currentUser = currentUser;
+  _removeDeviceTokenForUser() async {
+    // remove device token
+    // update user on rtdb
   }
 
   _signOut() {
-    _removeUserToken();
+    _removeDeviceTokenForUser();
     Navigator.pop(context);
     Navigator.pop(context);
     var budgetProvider = Provider.of<BudgetProvider>(context);
@@ -375,10 +200,9 @@ class _BudgetListScreen extends State<BudgetListScreen> {
 
     try {
       uiProvider.isLoading = false;
-      budgetProvider.budgetList = [];
+      userProvider.currentUser = null;
       budgetProvider.notAcceptedSharedBudgets = [];
       tokenPlatorms = [];
-      userProvider.userList = [];
       // save empty not accepted shared budgets to storage
       storageProvider.saveItemToStorage(budgetProvider,
           budgetProvider.notAcceptedSharedBudgets, 'notAcceptedSharedBudgets');
@@ -393,9 +217,11 @@ class _BudgetListScreen extends State<BudgetListScreen> {
   Widget build(BuildContext context) {
     var uiProvider = Provider.of<UIProvider>(context);
     var budgetProvider = Provider.of<BudgetProvider>(context);
+    var userProvider = Provider.of<UserProvider>(context);
     var authProvider = Provider.of<AuthProvider>(context);
     var storageProvider = Provider.of<StorageProvider>(context);
 
+    // TODO: if budget is shared, alert user that all shared users will also have this deleted. So otherwise just remove yourself from share menu to remove yourself.
     void _deleteBudget(Budget budget) async {
       showAlertDialog(context, "Delete ${budget.name}",
           "Are you sure you want to delete this budget?", [
@@ -415,12 +241,14 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                 color: uiProvider.isLightTheme ? Colors.black : Colors.white),
           ),
           onPressed: () {
-            widget.auth.deleteBudget(_database, budget);
+            print(budget.toString());
+            widget.auth
+                .deleteBudget(_database, userProvider.currentUser, budget);
             print("Delete ${budget.key} successful");
-            int budgetIndex = budgetProvider.budgetList.indexOf(budget);
-            setState(() {
-              budgetProvider.budgetList.removeAt(budgetIndex);
-            });
+            // int budgetIndex = userProvider.currentUser.budgets.indexOf(budget);
+            // setState(() {
+            //   userProvider.currentUser.budgets.removeAt(budgetIndex);
+            // });
             Navigator.of(context).pop();
           },
         )
@@ -441,15 +269,17 @@ class _BudgetListScreen extends State<BudgetListScreen> {
       }
 
       // Remove display name of user that shared budget
-      var newSharedName = "none";
+      // var newSharedName = "none";
 
       budgetProvider.selectedBudget.sharedWith = newSharedWith;
-      budgetProvider.selectedBudget.sharedName = newSharedName;
-      widget.auth.updateBudget(_database, budgetProvider.selectedBudget);
+      widget.auth.updateBudget(
+          _database, userProvider.currentUser, budgetProvider.selectedBudget);
     }
 
     Widget _showBudgetList() {
-      if (budgetProvider.budgetList.length > 0) {
+      if (userProvider.currentUser != null &&
+          userProvider.currentUser.budgets != null &&
+          userProvider.currentUser.budgets.length > 0) {
         // Swipe up to show 'Create Budget' dialog
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -461,11 +291,12 @@ class _BudgetListScreen extends State<BudgetListScreen> {
               child: ListView.builder(
                   physics: BouncingScrollPhysics(),
                   shrinkWrap: true,
-                  itemCount: budgetProvider.budgetList.length,
+                  itemCount: userProvider.currentUser.budgets.length,
                   itemBuilder: (BuildContext context, int index) {
-                    String name = budgetProvider.budgetList[index].name;
-                    num spent = budgetProvider.budgetList[index].spent;
-                    num setAmount = budgetProvider.budgetList[index].setAmount;
+                    String name = userProvider.currentUser.budgets[index].name;
+                    num spent = userProvider.currentUser.budgets[index].spent;
+                    num setAmount =
+                        userProvider.currentUser.budgets[index].setAmount;
 
                     // Determine if budget is saved in not accepted budgets
                     bool isNotAccepted = false;
@@ -473,10 +304,8 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                     for (Budget notAcceptedSharedBudget
                         in budgetProvider.notAcceptedSharedBudgets) {
                       if (notAcceptedSharedBudget.key ==
-                          budgetProvider.budgetList[index].key) {
+                          userProvider.currentUser.budgets[index].key) {
                         isNotAccepted = true;
-                        nameOfUserThatSharedNotAcceptedBudget =
-                            notAcceptedSharedBudget.sharedName;
                       }
                     }
                     return isNotAccepted
@@ -524,8 +353,8 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                                           context);
                                                   budgetProvider
                                                           .selectedBudget =
-                                                      budgetProvider
-                                                          .budgetList[index];
+                                                      userProvider.currentUser
+                                                          .budgets[index];
                                                   var authProvider =
                                                       Provider.of<AuthProvider>(
                                                           context);
@@ -539,8 +368,8 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                                                   "" ||
                                                               nameOfUserThatSharedNotAcceptedBudget ==
                                                                   "none"
-                                                          ? "'${budgetProvider.budgetList[index].name}' has been shared with you. Accept to add it to your list."
-                                                          : "$nameOfUserThatSharedNotAcceptedBudget shared '${budgetProvider.budgetList[index].name}' with you. Accept to add it to your list.",
+                                                          ? "'${userProvider.currentUser.budgets[index].name}' has been shared with you. Accept to add it to your list."
+                                                          : "$nameOfUserThatSharedNotAcceptedBudget shared '${userProvider.currentUser.budgets[index].name}' with you. Accept to add it to your list.",
                                                       [
                                                         FlatButton(
                                                           child: Text(
@@ -668,8 +497,9 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                                                     .only(
                                                                 right: 18.0),
                                                         child:
-                                                            budgetProvider
-                                                                    .budgetList[
+                                                            userProvider
+                                                                    .currentUser
+                                                                    .budgets[
                                                                         index]
                                                                     .isShared
                                                                 ? Icon(
@@ -705,14 +535,17 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                     ),
                                     onPress: () {
                                       budgetProvider.selectedBudget =
-                                          budgetProvider.budgetList[index];
+                                          userProvider
+                                              .currentUser.budgets[index];
                                       Navigator.of(context).push(
                                           CupertinoPageRoute(
                                               fullscreenDialog: true,
                                               builder: (context) =>
                                                   EditBudgetScreen(
-                                                    budget: budgetProvider
-                                                        .budgetList[index],
+                                                    budget: userProvider
+                                                        .currentUser
+                                                        .budgets[index],
+                                                    user: widget.user,
                                                   )));
                                     },
                                     backgroundColor: Colors.transparent),
@@ -724,7 +557,8 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                     ),
                                     onPress: () {
                                       budgetProvider.selectedBudget =
-                                          budgetProvider.budgetList[index];
+                                          userProvider
+                                              .currentUser.budgets[index];
                                       Navigator.of(context).push(
                                           CupertinoPageRoute(
                                               fullscreenDialog: true,
@@ -744,8 +578,8 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                       color: Colors.white,
                                     ),
                                     onPress: () {
-                                      _deleteBudget(
-                                          budgetProvider.budgetList[index]);
+                                      _deleteBudget(userProvider
+                                          .currentUser.budgets[index]);
                                     },
                                     backgroundColor: Colors.transparent),
                               ],
@@ -791,8 +625,8 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                                           context);
                                                   budgetProvider
                                                           .selectedBudget =
-                                                      budgetProvider
-                                                          .budgetList[index];
+                                                      userProvider.currentUser
+                                                          .budgets[index];
                                                   var authProvider =
                                                       Provider.of<AuthProvider>(
                                                           context);
@@ -854,8 +688,9 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                                                     .only(
                                                                 right: 18.0),
                                                         child:
-                                                            budgetProvider
-                                                                    .budgetList[
+                                                            userProvider
+                                                                    .currentUser
+                                                                    .budgets[
                                                                         index]
                                                                     .isShared
                                                                 ? Icon(
@@ -927,7 +762,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
             Navigator.of(context).push(CupertinoPageRoute(
                 fullscreenDialog: true,
                 builder: (context) => CreateBudgetScreen(
-                      user: widget.user,
+                      user: userProvider.currentUser,
                     )));
           }
         },
@@ -1007,7 +842,10 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                             Padding(
                               padding: const EdgeInsets.only(top: 5.0),
                               child: Text(
-                                "${budgetProvider.budgetList.length.toString()}",
+                                userProvider.currentUser == null ||
+                                        userProvider.currentUser.budgets == null
+                                    ? "0"
+                                    : "${userProvider.currentUser.budgets.length.toString()}",
                                 style: TextStyle(
                                     fontSize: 22.0,
                                     fontWeight: FontWeight.w700,
@@ -1040,7 +878,10 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                             Padding(
                               padding: const EdgeInsets.only(top: 5.0),
                               child: Text(
-                                "${_currency.format(totalAmountSpent(budgetProvider))}",
+                                userProvider.currentUser == null ||
+                                        userProvider.currentUser.budgets == null
+                                    ? "${_currency.format(0)}"
+                                    : "${_currency.format(totalAmountSpent(userProvider))}",
                                 style: TextStyle(
                                     fontSize: 22.0,
                                     fontWeight: FontWeight.w700,
@@ -1073,7 +914,10 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                             Padding(
                               padding: const EdgeInsets.only(top: 5.0),
                               child: Text(
-                                "${_currency.format(totalAmountLeft(budgetProvider))}",
+                                userProvider.currentUser == null ||
+                                        userProvider.currentUser.budgets == null
+                                    ? "${_currency.format(0)}"
+                                    : "${_currency.format(totalAmountLeft(userProvider))}",
                                 style: TextStyle(
                                     fontSize: 22.0,
                                     fontWeight: FontWeight.w700,
@@ -1228,6 +1072,13 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                     _initialized = true;
                   }
 
+                  // Create user for first time
+                  if (userProvider.currentUser == null) {
+                    print("creating user...");
+                    userProvider.createUser(_firebaseMessaging, widget.auth,
+                        _database, widget.user);
+                  }
+
                   return _showBudgetList();
                 }),
             floatingActionButton: FloatingActionButton(
@@ -1246,7 +1097,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                 Navigator.of(context).push(CupertinoPageRoute(
                     fullscreenDialog: true,
                     builder: (context) => CreateBudgetScreen(
-                          user: widget.user,
+                          user: userProvider.currentUser,
                         )));
               },
             ),
