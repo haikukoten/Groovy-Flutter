@@ -55,7 +55,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
   double _finalDragAmount;
 
   bool _initialized = false;
-  User currentUser = User();
+  User currentUser;
   List<String> tokenPlatorms = [];
 
   @override
@@ -147,6 +147,8 @@ class _BudgetListScreen extends State<BudgetListScreen> {
   _onUserAdded(Event event) {
     var userProvider = Provider.of<UserProvider>(context);
     userProvider.currentUser = User.fromSnapshot(event.snapshot);
+    userProvider.updateUserDeviceTokens(
+        _firebaseMessaging, widget.auth, _database, userProvider.currentUser);
   }
 
   _onUserChanged(Event event) {
@@ -184,13 +186,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
     return totalLeft;
   }
 
-  _removeDeviceTokenForUser() async {
-    // remove device token
-    // update user on rtdb
-  }
-
   _signOut() {
-    _removeDeviceTokenForUser();
     Navigator.pop(context);
     Navigator.pop(context);
     var budgetProvider = Provider.of<BudgetProvider>(context);
@@ -198,19 +194,26 @@ class _BudgetListScreen extends State<BudgetListScreen> {
     var uiProvider = Provider.of<UIProvider>(context);
     var userProvider = Provider.of<UserProvider>(context);
 
-    try {
-      uiProvider.isLoading = false;
-      userProvider.currentUser = null;
-      budgetProvider.notAcceptedSharedBudgets = [];
-      tokenPlatorms = [];
-      // save empty not accepted shared budgets to storage
-      storageProvider.saveItemToStorage(budgetProvider,
-          budgetProvider.notAcceptedSharedBudgets, 'notAcceptedSharedBudgets');
-      widget.auth.signOut();
-      widget.onSignedOut();
-    } catch (e) {
-      print(e);
-    }
+    userProvider
+        .removeUserDeviceToken(_firebaseMessaging, widget.auth, _database,
+            userProvider.currentUser)
+        .then((_) {
+      try {
+        uiProvider.isLoading = false;
+        userProvider.currentUser = null;
+        budgetProvider.notAcceptedSharedBudgets = [];
+        tokenPlatorms = [];
+        // save empty not accepted shared budgets to storage
+        storageProvider.saveItemToStorage(
+            budgetProvider,
+            budgetProvider.notAcceptedSharedBudgets,
+            'notAcceptedSharedBudgets');
+        widget.auth.signOut();
+        widget.onSignedOut();
+      } catch (e) {
+        print(e);
+      }
+    });
   }
 
   @override

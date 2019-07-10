@@ -6,7 +6,7 @@ class User {
   String key;
   String name;
   String email;
-  List<dynamic> tokenPlatform;
+  List<dynamic> deviceTokens;
   bool isPaid;
   List<dynamic> budgets;
   List<dynamic> transactions;
@@ -15,7 +15,7 @@ class User {
       {this.key,
       this.name,
       this.email,
-      this.tokenPlatform,
+      this.deviceTokens,
       this.isPaid,
       this.budgets,
       this.transactions});
@@ -24,7 +24,7 @@ class User {
     key = snapshot.key;
     name = snapshot.value["name"];
     email = snapshot.value["email"];
-    tokenPlatform = snapshot.value["tokenPlatform"];
+    deviceTokens = snapshot.value["deviceTokens"];
     isPaid = snapshot.value["isPaid"];
 
     if (snapshot.value["budgets"] != null) {
@@ -52,7 +52,7 @@ class User {
     return {
       "name": name,
       "email": email,
-      "tokenPlatform": tokenPlatform,
+      "deviceTokens": deviceTokens,
       "isPaid": isPaid,
       "budgets": budgets,
       "transactions": transactions
@@ -60,6 +60,6 @@ class User {
   }
 
   String toString() {
-    return "name: $name, email: $email, tokenPlatform: $tokenPlatform, isPaid: $isPaid, budgets: $budgets, transactions: $transactions";
+    return "key: $key, name: $name, email: $email, deviceTokens: $deviceTokens, isPaid: $isPaid, budgets: $budgets, transactions: $transactions";
   }
 }

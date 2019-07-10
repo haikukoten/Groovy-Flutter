@@ -26,14 +26,53 @@ class UserProvider extends ChangeNotifier {
     var token = await firebaseMessaging.getToken();
     var platform = Platform.isAndroid ? "android" : "iOS";
 
-    List<String> tokenPlatform = [];
-    tokenPlatform.add("$token&&platform===>$platform");
+    List<String> deviceTokens = [];
+    deviceTokens.add("$token&&platform===>$platform");
     auth.createUser(
         database,
         User(
             email: user.email,
             name: user.displayName,
             isPaid: false,
-            tokenPlatform: tokenPlatform));
+            deviceTokens: deviceTokens));
+  }
+
+  Future<void> updateUserDeviceTokens(FirebaseMessaging firebaseMessaging,
+      BaseAuth auth, FirebaseDatabase database, User user) async {
+    var token = await firebaseMessaging.getToken();
+    var platform = Platform.isAndroid ? "android" : "iOS";
+    var deviceToken = "$token&&platform===>$platform";
+    var deviceTokens = [];
+
+    // IF user has no device tokens, add current
+    if (user.deviceTokens == null) {
+      deviceTokens.add(deviceToken);
+      // If user already has device tokens, but not current, add current
+    } else {
+      user.deviceTokens.forEach((token) => deviceTokens.add(token));
+      if (!deviceTokens.contains(deviceToken)) {
+        deviceTokens.add(deviceToken);
+      }
+    }
+
+    user.deviceTokens = deviceTokens;
+    auth.updateUser(database, user);
+  }
+
+  Future<void> removeUserDeviceToken(FirebaseMessaging firebaseMessaging,
+      BaseAuth auth, FirebaseDatabase database, User user) async {
+    var token = await firebaseMessaging.getToken();
+    var platform = Platform.isAndroid ? "android" : "iOS";
+    var deviceToken = "$token&&platform===>$platform";
+    var deviceTokens = [];
+    user.deviceTokens.forEach((token) => deviceTokens.add(token));
+
+    // If user contains current device token, remove it
+    if (deviceTokens.contains(deviceToken)) {
+      deviceTokens.remove(deviceToken);
+    }
+
+    user.deviceTokens = deviceTokens;
+    auth.updateUser(database, user);
   }
 }

@@ -42,6 +42,9 @@ exports.shareBudget = functions.database.ref('/users/{userId}/budgets/{budgetId}
             var budgetSnapshotValue = budgetSnapshot.val();
             // Get budget object
             var budget = budgetSnapshotValue[Object.keys(budgetSnapshotValue)[0]];
+
+            //TODO: send notification
+
             return await admin.database().ref(`users/${userKey}/budgets`).push(budget);
         }
     });

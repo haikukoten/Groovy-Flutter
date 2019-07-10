@@ -21,8 +21,7 @@ abstract class BaseAuth {
 
   Future<void> createUser(FirebaseDatabase database, User user);
 
-  Future<void> updateUser(
-      FirebaseDatabase database, FirebaseUser firebaseUser, User user);
+  Future<void> updateUser(FirebaseDatabase database, User user);
 
   Future<void> deleteUser(
       FirebaseDatabase database, FirebaseUser firebaseUser, User user);
@@ -107,12 +106,12 @@ class Auth implements BaseAuth {
     return await database.reference().child("users").push().set(user.toJson());
   }
 
-  Future<void> updateUser(
-      FirebaseDatabase database, FirebaseUser firebaseUser, User user) async {
+  Future<void> updateUser(FirebaseDatabase database, User user) async {
+    print("Updating ==> $user");
     return await database
         .reference()
         .child("users")
-        .child(firebaseUser.uid)
+        .child(user.key)
         .set(user.toJson());
   }
 
