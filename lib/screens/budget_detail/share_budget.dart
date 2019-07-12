@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:Groovy/models/budget.dart';
+import 'package:Groovy/models/user.dart';
 import 'package:Groovy/providers/budget_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
 import 'package:Groovy/providers/user_provider.dart';
@@ -71,23 +72,48 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
 
     _shareBudget() async {
       if (_validateAndSaveShare()) {
-        budgetProvider.selectedBudget.isShared = true;
+        // send budget to shared user
+        // get user from shared email
+        User user =
+            await userProvider.userService.getUserFromEmail(_database, _email);
+        // User doesn't exist
+        if (user.email == null) {
+          showAlertDialog(
+              context, "User not found", "No account found for $_email", [
+            FlatButton(
+              child: Text(
+                'Close',
+                style: TextStyle(color: Colors.grey),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+                FocusScope.of(context).requestFocus(_shareBudgetFocusNode);
+              },
+            ),
+          ]);
+        } else {
+          budgetProvider.selectedBudget.isShared = true;
 
-        var newSharedWith = [];
+          var newSharedWith = [];
 
-        if (budgetProvider.selectedBudget.sharedWith != null) {
-          for (String sharedWithEmail
-              in budgetProvider.selectedBudget.sharedWith) {
-            newSharedWith.add(sharedWithEmail);
+          if (budgetProvider.selectedBudget.sharedWith != null) {
+            for (String sharedWithEmail
+                in budgetProvider.selectedBudget.sharedWith) {
+              newSharedWith.add(sharedWithEmail);
+            }
           }
+
+          // Add new email
+          newSharedWith.add(_email.toLowerCase());
+
+          budgetProvider.selectedBudget.sharedWith = newSharedWith;
+          budgetProvider.budgetService.updateBudget(_database,
+              userProvider.currentUser, budgetProvider.selectedBudget);
+          budgetProvider.budgetService
+              .shareBudget(_database, user, budgetProvider.selectedBudget);
+
+          // update all users on sharedWith
         }
-
-        // Add new email
-        newSharedWith.add(_email.toLowerCase());
-
-        budgetProvider.selectedBudget.sharedWith = newSharedWith;
-        budgetProvider.budgetService.updateBudget(
-            _database, userProvider.currentUser, budgetProvider.selectedBudget);
       }
     }
 
@@ -106,6 +132,9 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
       budgetProvider.selectedBudget.sharedWith = newSharedWith;
       budgetProvider.budgetService.updateBudget(
           _database, userProvider.currentUser, budgetProvider.selectedBudget);
+
+      // remove budget from shared user (email)
+      // update all users on sharedWith
     }
 
     Widget _showIcon() {

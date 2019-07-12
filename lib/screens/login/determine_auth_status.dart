@@ -1,3 +1,4 @@
+import 'package:Groovy/providers/user_provider.dart';
 import 'package:Groovy/services/budget_service.dart';
 import 'package:Groovy/services/user_service.dart';
 import 'package:flutter/material.dart';
@@ -5,6 +6,7 @@ import 'package:Groovy/screens/login/choose_login.dart';
 import 'package:Groovy/services/auth_service.dart';
 import 'package:Groovy/screens/budget_list/budget_list.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 
 class DetermineAuthStatusScreen extends StatefulWidget {
   DetermineAuthStatusScreen({this.auth, this.userService, this.budgetService});
@@ -46,6 +48,8 @@ class _DetermineAuthStatusScreenState extends State<DetermineAuthStatusScreen> {
     widget.auth.getCurrentUser().then((user) {
       setState(() {
         _user = user;
+        var userProvider = Provider.of<UserProvider>(context);
+        userProvider.currentUser = null;
       });
     });
     setState(() {

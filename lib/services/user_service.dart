@@ -25,4 +25,15 @@ class UserService {
         .child(firebaseUser.uid)
         .remove();
   }
+
+  Future<User> getUserFromEmail(FirebaseDatabase database, String email) async {
+    return await database
+        .reference()
+        .child("users")
+        .orderByChild('email')
+        .equalTo(email)
+        .once()
+        .then((DataSnapshot snapshot) =>
+            snapshot.value == null ? User() : User.fromSnapshot(snapshot));
+  }
 }

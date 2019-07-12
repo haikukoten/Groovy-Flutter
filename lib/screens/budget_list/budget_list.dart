@@ -209,17 +209,19 @@ class _BudgetListScreen extends State<BudgetListScreen> {
             _database, userProvider.currentUser)
         .then((_) {
       try {
-        uiProvider.isLoading = false;
-        userProvider.currentUser = null;
-        budgetProvider.notAcceptedSharedBudgets = [];
-        tokenPlatorms = [];
         // save empty not accepted shared budgets to storage
         storageProvider.saveItemToStorage(
             budgetProvider,
             budgetProvider.notAcceptedSharedBudgets,
             'notAcceptedSharedBudgets');
+
+        // clear values
+        uiProvider.isLoading = false;
+        budgetProvider.notAcceptedSharedBudgets = [];
+        tokenPlatorms = [];
         widget.auth.signOut();
         widget.onSignedOut();
+        print("sign out successful");
       } catch (e) {
         print(e);
       }

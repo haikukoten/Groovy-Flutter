@@ -53,4 +53,26 @@ class BudgetService {
         .child(budget.key)
         .remove();
   }
+
+  Future<void> shareBudget(
+      FirebaseDatabase database, User user, Budget budget) async {
+    return await database
+        .reference()
+        .child("users")
+        .child(user.key)
+        .child("budgets")
+        .push()
+        .set(budget.toJson());
+  }
+
+  Future<void> removeSharedBudget(
+      FirebaseDatabase database, User user, Budget budget) async {
+    return await database
+        .reference()
+        .child("users")
+        .child(user.key)
+        .child("budgets")
+        .child(budget.key)
+        .remove();
+  }
 }

@@ -20,13 +20,6 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  List<User> _userList = [];
-  List<User> get userList => _userList;
-  set userList(List<User> userList) {
-    _userList = userList;
-    notifyListeners();
-  }
-
   createUser(FirebaseMessaging firebaseMessaging, UserService userService,
       FirebaseDatabase database, FirebaseUser user) async {
     var token = await firebaseMessaging.getToken();
