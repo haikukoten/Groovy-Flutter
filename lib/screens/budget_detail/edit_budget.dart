@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:Groovy/models/budget.dart';
-import 'package:Groovy/providers/auth_provider.dart';
 import 'package:Groovy/providers/budget_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
 import 'package:Groovy/providers/user_provider.dart';
@@ -69,7 +68,6 @@ class _EditBudgetScreen extends State<EditBudgetScreen> {
   @override
   Widget build(BuildContext context) {
     // Access to auth and onSignedIn from ChooseLogin
-    var authProvider = Provider.of<AuthProvider>(context);
     var uiProvider = Provider.of<UIProvider>(context);
     var budgetProvider = Provider.of<BudgetProvider>(context);
     var userProvider = Provider.of<UserProvider>(context);
@@ -89,7 +87,7 @@ class _EditBudgetScreen extends State<EditBudgetScreen> {
         budgetProvider.selectedBudget.left =
             budgetProvider.selectedBudget.setAmount -
                 budgetProvider.selectedBudget.spent;
-        authProvider.auth.updateBudget(
+        budgetProvider.budgetService.updateBudget(
             _database, userProvider.currentUser, budgetProvider.selectedBudget);
         Navigator.of(context).pop();
       }
@@ -99,9 +97,9 @@ class _EditBudgetScreen extends State<EditBudgetScreen> {
       budgetProvider.selectedBudget.spent = 0;
       budgetProvider.selectedBudget.left =
           budgetProvider.selectedBudget.setAmount;
-      budgetProvider.selectedBudget.history = ["none:none"];
-      budgetProvider.selectedBudget.userDate = ["none:none"];
-      authProvider.auth.updateBudget(
+      budgetProvider.selectedBudget.history = [];
+      budgetProvider.selectedBudget.userDate = [];
+      budgetProvider.budgetService.updateBudget(
           _database, userProvider.currentUser, budgetProvider.selectedBudget);
       Navigator.of(context).pop();
       Navigator.of(context).pop();

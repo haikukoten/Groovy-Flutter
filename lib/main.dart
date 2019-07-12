@@ -4,10 +4,12 @@ import 'package:Groovy/screens/budget_detail/edit_history.dart';
 import 'package:Groovy/screens/budget_detail/share_budget.dart';
 import 'package:Groovy/screens/budget_list/create_budget.dart';
 import 'package:Groovy/screens/request_notifications.dart';
+import 'package:Groovy/services/budget_service.dart';
+import 'package:Groovy/services/user_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:Groovy/screens/login/email_login.dart';
-import 'package:Groovy/services/auth.dart';
+import 'package:Groovy/services/auth_service.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'screens/login/determine_auth_status.dart';
@@ -50,7 +52,9 @@ class MyApp extends StatelessWidget {
           return _buildRoute(
             settings,
             DetermineAuthStatusScreen(
-              auth: Auth(),
+              auth: AuthService(),
+              userService: UserService(),
+              budgetService: BudgetService(),
             ),
           );
           break;

@@ -1,7 +1,4 @@
 import 'dart:async';
-import 'package:firebase_database/firebase_database.dart';
-import '../models/budget.dart';
-import '../models/user.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_login/flutter_facebook_login.dart';
@@ -10,22 +7,6 @@ import 'package:flutter_facebook_login/flutter_facebook_login.dart';
 // Test that canceling Google login works in release mode
 
 abstract class BaseAuth {
-  Future<void> createBudget(
-      FirebaseDatabase database, User user, String name, String amount);
-
-  Future<void> updateBudget(
-      FirebaseDatabase database, User user, Budget budget);
-
-  Future<void> deleteBudget(
-      FirebaseDatabase database, User user, Budget budget);
-
-  Future<void> createUser(FirebaseDatabase database, User user);
-
-  Future<void> updateUser(FirebaseDatabase database, User user);
-
-  Future<void> deleteUser(
-      FirebaseDatabase database, FirebaseUser firebaseUser, User user);
-
   Future<FirebaseUser> googleSignIn();
 
   Future<dynamic> facebookSignIn();
@@ -47,82 +28,10 @@ abstract class BaseAuth {
   Future<bool> isEmailVerified();
 }
 
-class Auth implements BaseAuth {
+class AuthService implements BaseAuth {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FacebookLogin _facebookLogin = FacebookLogin();
-
-  Future<void> createBudget(
-      FirebaseDatabase database, User user, String name, String amount) async {
-    if (name.length > 0) {
-      // TODO: Create 'transfer budgets' function from old version of app to new version
-      // so users can get their old budgets on the new app architecture
-      Budget budget = new Budget(
-          createdBy: user.email,
-          hiddenFrom: [],
-          history: [],
-          isShared: false,
-          left: num.parse(amount),
-          name: name,
-          setAmount: num.parse(amount),
-          sharedWith: [user.email],
-          spent: 0,
-          userDate: []);
-      return await database
-          .reference()
-          .child("users")
-          .child(user.key)
-          .child("budgets")
-          .push()
-          .set(budget.toJson());
-    }
-  }
-
-  Future<void> updateBudget(
-      FirebaseDatabase database, User user, Budget budget) async {
-    if (budget != null) {
-      return await database
-          .reference()
-          .child("users")
-          .child(user.key)
-          .child("budgets")
-          .child(budget.key)
-          .set(budget.toJson());
-    }
-  }
-
-  Future<void> deleteBudget(
-      FirebaseDatabase database, User user, Budget budget) async {
-    return await database
-        .reference()
-        .child("users")
-        .child(user.key)
-        .child("budgets")
-        .child(budget.key)
-        .remove();
-  }
-
-  Future<void> createUser(FirebaseDatabase database, User user) async {
-    return await database.reference().child("users").push().set(user.toJson());
-  }
-
-  Future<void> updateUser(FirebaseDatabase database, User user) async {
-    print("Updating ==> $user");
-    return await database
-        .reference()
-        .child("users")
-        .child(user.key)
-        .set(user.toJson());
-  }
-
-  Future<void> deleteUser(
-      FirebaseDatabase database, FirebaseUser firebaseUser, User user) async {
-    return await database
-        .reference()
-        .child("users")
-        .child(firebaseUser.uid)
-        .remove();
-  }
 
   Future<FirebaseUser> googleSignIn() async {
     GoogleSignInAccount googleUser = await _googleSignIn.signIn();

@@ -8,7 +8,7 @@ class User {
   String email;
   List<dynamic> deviceTokens;
   bool isPaid;
-  List<dynamic> budgets;
+  List<Budget> budgets;
   List<dynamic> transactions;
 
   User(
@@ -29,16 +29,18 @@ class User {
 
     if (snapshot.value["budgets"] != null) {
       List<Budget> userBudgets = [];
-      (snapshot.value["budgets"] as Map).forEach((key, map) {
-        Map budgetMap = map;
+      Map budgetObjects = snapshot.value["budgets"];
+      budgetObjects.forEach((key, budget) {
+        Map budgetMap = budget;
         budgetMap["key"] = key;
         userBudgets.add(Budget.fromMap(budgetMap));
       });
+
       budgets = userBudgets;
     }
 
     if (snapshot.value["transactions"] != null) {
-      List<Transaction> userTransactions = [];
+      List<dynamic> userTransactions = [];
       (snapshot.value["transactions"] as Map).forEach((key, map) {
         Map transactionMap = map;
         transactionMap["key"] = key;
@@ -49,12 +51,20 @@ class User {
   }
 
   toJson() {
+    var budgetsObject = {};
+    if (budgets != null) {
+      budgets.forEach((budget) {
+        var budgetAsJSON = budget.toJson();
+        budgetsObject[budget.key] = budgetAsJSON;
+      });
+    }
+
     return {
       "name": name,
       "email": email,
       "deviceTokens": deviceTokens,
       "isPaid": isPaid,
-      "budgets": budgets,
+      "budgets": budgetsObject,
       "transactions": transactions
     };
   }

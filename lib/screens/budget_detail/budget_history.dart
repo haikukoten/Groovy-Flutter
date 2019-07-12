@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:Groovy/models/budget.dart';
-import 'package:Groovy/providers/auth_provider.dart';
 import 'package:Groovy/providers/budget_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
 import 'package:Groovy/providers/user_provider.dart';
@@ -40,7 +39,6 @@ class _BudgetHistoryScreen extends State<BudgetHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     // Access to auth and onSignedIn from ChooseLogin
-    var authProvider = Provider.of<AuthProvider>(context);
     var uiProvider = Provider.of<UIProvider>(context);
     var budgetProvider = Provider.of<BudgetProvider>(context);
     var userProvider = Provider.of<UserProvider>(context);
@@ -64,7 +62,7 @@ class _BudgetHistoryScreen extends State<BudgetHistoryScreen> {
       budgetProvider.selectedBudget.spent -= amount;
       budgetProvider.selectedBudget.left += amount;
 
-      authProvider.auth.updateBudget(
+      budgetProvider.budgetService.updateBudget(
           _database, userProvider.currentUser, budgetProvider.selectedBudget);
     }
 
@@ -108,7 +106,8 @@ class _BudgetHistoryScreen extends State<BudgetHistoryScreen> {
     }
 
     Widget _showHistoryList() {
-      if (budgetProvider.selectedBudget.history.length > 1) {
+      if (budgetProvider.selectedBudget.history != null &&
+          budgetProvider.selectedBudget.history.length > 0) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
@@ -124,17 +123,15 @@ class _BudgetHistoryScreen extends State<BudgetHistoryScreen> {
                   shrinkWrap: true,
                   itemCount: budgetProvider.selectedBudget.history.length,
                   itemBuilder: (BuildContext context, int index) {
-                    // 'index + 1' is necessary to get around the "none" values in history and userDate.
-                    // Again, this is not ideal, but necessary for now to provide backwards compatibility with users of the older app.
-                    if ((index + 1) !=
+                    if ((index) !=
                         budgetProvider.selectedBudget.history.length) {
                       String history =
-                          budgetProvider.selectedBudget.history[index + 1];
+                          budgetProvider.selectedBudget.history[index];
                       num amount = num.parse(history.split(":")[0]);
                       String note = history.split(":")[1];
                       note = note == "" ? "📝" : note;
                       String userDate =
-                          budgetProvider.selectedBudget.userDate[index + 1];
+                          budgetProvider.selectedBudget.userDate[index];
                       // Show either email or display name for user
                       String user = userDate.split(":")[0].contains("@")
                           ? userDate.split(":")[0].split("@")[0]

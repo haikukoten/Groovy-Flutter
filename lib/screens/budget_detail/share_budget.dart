@@ -4,7 +4,7 @@ import 'package:Groovy/providers/budget_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
 import 'package:Groovy/providers/user_provider.dart';
 import 'package:Groovy/screens/shared/swipe_actions/swipe_widget.dart';
-import 'package:Groovy/services/auth.dart';
+import 'package:Groovy/services/auth_service.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -86,7 +86,7 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
         newSharedWith.add(_email.toLowerCase());
 
         budgetProvider.selectedBudget.sharedWith = newSharedWith;
-        widget.auth.updateBudget(
+        budgetProvider.budgetService.updateBudget(
             _database, userProvider.currentUser, budgetProvider.selectedBudget);
       }
     }
@@ -104,7 +104,7 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
       }
 
       budgetProvider.selectedBudget.sharedWith = newSharedWith;
-      widget.auth.updateBudget(
+      budgetProvider.budgetService.updateBudget(
           _database, userProvider.currentUser, budgetProvider.selectedBudget);
     }
 

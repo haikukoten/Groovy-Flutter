@@ -3,10 +3,9 @@ import 'package:Groovy/screens/budget_detail/add_purchase.dart';
 import 'package:Groovy/screens/budget_detail/budget_history.dart';
 import 'package:Groovy/screens/budget_detail/edit_budget.dart';
 import 'package:Groovy/screens/budget_detail/share_budget.dart';
-import 'package:Groovy/services/auth.dart';
+import 'package:Groovy/services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
-import 'package:Groovy/providers/auth_provider.dart';
 import 'package:Groovy/providers/budget_provider.dart';
 import 'package:Groovy/providers/user_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
@@ -44,7 +43,6 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    var authProvider = Provider.of<AuthProvider>(context);
     var uiProvider = Provider.of<UIProvider>(context);
     var budgetProvider = Provider.of<BudgetProvider>(context);
     var userProvider = Provider.of<UserProvider>(context);
@@ -68,7 +66,7 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
                 color: uiProvider.isLightTheme ? Colors.black : Colors.white),
           ),
           onPressed: () {
-            authProvider.auth
+            budgetProvider.budgetService
                 .deleteBudget(_database, userProvider.currentUser, budget);
             print("Delete ${budget.key} successful");
             userProvider.currentUser.budgets.remove(budget);

@@ -1,5 +1,4 @@
 import 'dart:ui';
-import 'package:Groovy/providers/auth_provider.dart';
 import 'package:Groovy/providers/budget_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
 import 'package:Groovy/providers/user_provider.dart';
@@ -70,7 +69,6 @@ class _EditHistoryScreen extends State<EditHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     // Access to auth and onSignedIn from ChooseLogin
-    var authProvider = Provider.of<AuthProvider>(context);
     var uiProvider = Provider.of<UIProvider>(context);
     var budgetProvider = Provider.of<BudgetProvider>(context);
     var userProvider = Provider.of<UserProvider>(context);
@@ -112,7 +110,7 @@ class _EditHistoryScreen extends State<EditHistoryScreen> {
         budgetProvider.selectedBudget.left =
             budgetProvider.selectedBudget.setAmount - newAmountSpent;
 
-        authProvider.auth.updateBudget(
+        budgetProvider.budgetService.updateBudget(
             _database, userProvider.currentUser, budgetProvider.selectedBudget);
         Navigator.of(context).pop();
       }

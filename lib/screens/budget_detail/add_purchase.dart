@@ -88,20 +88,24 @@ class _AddPurchaseScreen extends State<AddPurchaseScreen> {
         FirebaseUser user = await authProvider.auth.getCurrentUser();
         var now = DateTime.now().millisecondsSinceEpoch;
         var history = [];
-        for (String historyItem in budgetProvider.selectedBudget.history) {
-          history.add(historyItem);
+        if (budgetProvider.selectedBudget.history != null) {
+          for (String historyItem in budgetProvider.selectedBudget.history) {
+            history.add(historyItem);
+          }
         }
         history.add("$_amount:$_note");
         var userDate = [];
-        for (String userDateItem in budgetProvider.selectedBudget.userDate) {
-          userDate.add(userDateItem);
+        if (budgetProvider.selectedBudget.userDate != null) {
+          for (String userDateItem in budgetProvider.selectedBudget.userDate) {
+            userDate.add(userDateItem);
+          }
         }
         userDate.add("${user.displayName}:$now");
         budgetProvider.selectedBudget.spent += num.parse(_amount);
         budgetProvider.selectedBudget.left -= num.parse(_amount);
         budgetProvider.selectedBudget.history = history;
         budgetProvider.selectedBudget.userDate = userDate;
-        authProvider.auth.updateBudget(
+        budgetProvider.budgetService.updateBudget(
             _database, userProvider.currentUser, budgetProvider.selectedBudget);
         Navigator.of(context).pop();
       }

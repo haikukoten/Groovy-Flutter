@@ -27,12 +27,14 @@ exports.shareBudget = functions.database.ref('/users/{userId}/budgets/{budgetId}
         if (userSnapshot.val() === null) {
             return false;
         } else {
-            // Get user value
+            // Get receiving user value
             var userSnapshotValue = userSnapshot.val();
-            // Get key of user that will receive new budget
+            // Get key of receiving user
             var userKey = Object.keys(userSnapshot.val())[0];
-            // Get user object
+            // Get receivng user object
             var user = userSnapshotValue[userKey];
+            // Get receiving user device tokens
+            var deviceTokens = user.deviceTokens;
 
             // Get shared budget
             var budgetSnapshot = await admin.database().ref(`/users/${context.params.userId}/budgets`).orderByChild('key').equalTo(context.params.budgetId).once("value").then(budgetSnapshot => {
@@ -43,9 +45,34 @@ exports.shareBudget = functions.database.ref('/users/{userId}/budgets/{budgetId}
             // Get budget object
             var budget = budgetSnapshotValue[Object.keys(budgetSnapshotValue)[0]];
 
-            //TODO: send notification
+            // Get current user so shared user will get current user's name in notification
+            var currentUserSnapshot = await admin.database().ref(`/users/${context.params.userId}`).once("value").then(currentUserSnapshot => {
+                return currentUserSnapshot;
+            });
 
-            return await admin.database().ref(`users/${userKey}/budgets`).push(budget);
+            // Get current user object
+            var currentUser = currentUserSnapshot.val();
+            var currentUserName = currentUser.name;
+
+            // Notification details.
+            const payload = {
+                notification: {
+                    body: `${currentUserName} shared a budget with you 💸`,
+                    title: "",
+                },
+                data: {
+                    "click_action": "FLUTTER_NOTIFICATION_CLICK",
+                },
+            };
+
+            return await admin.database().ref(`users/${userKey}/budgets`).push(budget).then(_ => {
+                if (deviceTokens !== null) {
+                    // Send notification to all devices of receiving user
+                    return admin.messaging().sendToDevice(deviceTokens, payload);
+                } else {
+                    return null;
+                }
+            });
         }
     });
 
@@ -63,7 +90,7 @@ exports.removeShareBudget = functions.database.ref('/users/{userId}/budgets/{bud
         if (userSnapshot === null) {
             return false;
         } else {
-            // Get key of user that will receive new budget
+            // Get key of receiving user
             var userKey = Object.keys(userSnapshot.val())[0];
 
             // Get shared budget from current user
@@ -75,7 +102,7 @@ exports.removeShareBudget = functions.database.ref('/users/{userId}/budgets/{bud
             // Get budget object
             var budget = budgetSnapshotValue[Object.keys(budgetSnapshotValue)[0]];
 
-            // Get equivalent budget from selected shared user (to be removed)
+            // Get equivalent budget (to be removed) from selected shared user
             var toBeRemovedBudgetSnapshot = await admin.database().ref(`/users/${userKey}/budgets`).orderByChild('key').equalTo(budget['key']).once("value").then(toBeRemovedBudgetSnapshot => {
                 return toBeRemovedBudgetSnapshot;
             });
@@ -85,8 +112,33 @@ exports.removeShareBudget = functions.database.ref('/users/{userId}/budgets/{bud
             } else {
                 var toBeRemovedBudgetSnapshotValue = toBeRemovedBudgetSnapshot.val();
                 var toBeRemovedBudgetKey = Object.keys(toBeRemovedBudgetSnapshotValue)[0];
+
+                // Remove budget promises
+                var removeBudgetPromises = [];
+
                 // Remove budget from shared user
-                return await admin.database().ref(`users/${userKey}/budgets/${toBeRemovedBudgetKey}`).remove();
+                var removeBudget = admin.database().ref(`users/${userKey}/budgets/${toBeRemovedBudgetKey}`).remove();
+                removeBudgetPromises.push(removeBudget);
+
+                // Update all other shared budgets with new budget info
+                // Get all emails
+                var emails = budget.sharedWith;
+                // Get user for email
+                for (var email in emails) {
+                    var sharedUserSnapshot = admin.database().ref('/users').orderByChild('email').equalTo(email).once("value").then(sharedUserSnapshot => {
+                        return sharedUserSnapshot;
+                    });
+                    // Get budget for user
+                    var sharedBudgetSnapshot = admin.database().ref(`/users/${sharedUserSnapshot.key}/budgets`).orderByChild('key').equalTo(budget['key']).once("value").then(sharedBudgetSnapshot => {
+                        return sharedBudgetSnapshot;
+                    });
+
+                    // Update that budget with new 'isShared' and 'sharedWith' values
+                    var updateBudget = admin.database().ref(`users/${sharedUserSnapshot.key}/budgets/${sharedBudgetSnapshot.key}`).set(budget);
+                    removeBudgetPromises.push(updateBudget);
+                }
+
+                return Promise.all(removeBudgetPromises);
             }
         }
     });

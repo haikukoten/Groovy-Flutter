@@ -2,10 +2,12 @@ import 'dart:ui';
 import 'dart:math';
 import 'package:Groovy/providers/auth_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
+import 'package:Groovy/services/budget_service.dart';
+import 'package:Groovy/services/user_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:Groovy/services/auth.dart';
+import 'package:Groovy/services/auth_service.dart';
 import 'package:provider/provider.dart';
 import '../shared/utilities.dart';
 import '../shared/animated/background.dart';
@@ -13,9 +15,17 @@ import '../shared/animated/wave.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 
 class ChooseLoginScreen extends StatefulWidget {
-  ChooseLoginScreen({Key key, this.auth, this.onSignedIn}) : super(key: key);
+  ChooseLoginScreen(
+      {Key key,
+      this.auth,
+      this.userService,
+      this.budgetService,
+      this.onSignedIn})
+      : super(key: key);
 
   final BaseAuth auth;
+  final UserService userService;
+  final BudgetService budgetService;
   final VoidCallback onSignedIn;
 
   @override

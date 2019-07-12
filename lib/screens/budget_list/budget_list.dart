@@ -11,6 +11,8 @@ import 'package:Groovy/screens/budget_detail/budget_detail.dart';
 import 'package:Groovy/screens/budget_detail/share_budget.dart';
 import 'package:Groovy/screens/budget_list/create_budget.dart';
 import 'package:Groovy/screens/request_notifications.dart';
+import 'package:Groovy/services/budget_service.dart';
+import 'package:Groovy/services/user_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -18,7 +20,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import "package:intl/intl.dart";
 import 'package:flutter/material.dart';
-import 'package:Groovy/services/auth.dart';
+import 'package:Groovy/services/auth_service.dart';
 import 'package:Groovy/models/budget.dart';
 import 'package:provider/provider.dart';
 import '../budget_detail/edit_budget.dart';
@@ -29,10 +31,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 
 class BudgetListScreen extends StatefulWidget {
-  BudgetListScreen({Key key, this.auth, this.user, this.onSignedOut})
+  BudgetListScreen(
+      {Key key,
+      this.auth,
+      this.userService,
+      this.budgetService,
+      this.user,
+      this.onSignedOut})
       : super(key: key);
 
   final BaseAuth auth;
+  final UserService userService;
+  final BudgetService budgetService;
   final VoidCallback onSignedOut;
   final FirebaseUser user;
 
@@ -51,8 +61,8 @@ class _BudgetListScreen extends State<BudgetListScreen> {
   StreamSubscription<Event> _onUserAddedSubscription;
   StreamSubscription<Event> _onUserChangedSubscription;
 
-  double _initialDragAmount;
-  double _finalDragAmount;
+  double _initialDragAmount = 0;
+  double _finalDragAmount = 0;
 
   bool _initialized = false;
   User currentUser;
@@ -147,8 +157,8 @@ class _BudgetListScreen extends State<BudgetListScreen> {
   _onUserAdded(Event event) {
     var userProvider = Provider.of<UserProvider>(context);
     userProvider.currentUser = User.fromSnapshot(event.snapshot);
-    userProvider.updateUserDeviceTokens(
-        _firebaseMessaging, widget.auth, _database, userProvider.currentUser);
+    userProvider.updateUserDeviceTokens(_firebaseMessaging, widget.userService,
+        _database, userProvider.currentUser);
   }
 
   _onUserChanged(Event event) {
@@ -195,8 +205,8 @@ class _BudgetListScreen extends State<BudgetListScreen> {
     var userProvider = Provider.of<UserProvider>(context);
 
     userProvider
-        .removeUserDeviceToken(_firebaseMessaging, widget.auth, _database,
-            userProvider.currentUser)
+        .removeUserDeviceToken(_firebaseMessaging, widget.userService,
+            _database, userProvider.currentUser)
         .then((_) {
       try {
         uiProvider.isLoading = false;
@@ -245,7 +255,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
           ),
           onPressed: () {
             print(budget.toString());
-            widget.auth
+            widget.budgetService
                 .deleteBudget(_database, userProvider.currentUser, budget);
             print("Delete ${budget.key} successful");
             // int budgetIndex = userProvider.currentUser.budgets.indexOf(budget);
@@ -275,7 +285,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
       // var newSharedName = "none";
 
       budgetProvider.selectedBudget.sharedWith = newSharedWith;
-      widget.auth.updateBudget(
+      widget.budgetService.updateBudget(
           _database, userProvider.currentUser, budgetProvider.selectedBudget);
     }
 
@@ -363,6 +373,10 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                                           context);
                                                   authProvider.auth =
                                                       widget.auth;
+                                                  userProvider.userService =
+                                                      widget.userService;
+                                                  budgetProvider.budgetService =
+                                                      widget.budgetService;
 
                                                   showAlertDialog(
                                                       context,
@@ -540,6 +554,10 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                       budgetProvider.selectedBudget =
                                           userProvider
                                               .currentUser.budgets[index];
+                                      userProvider.userService =
+                                          widget.userService;
+                                      budgetProvider.budgetService =
+                                          widget.budgetService;
                                       Navigator.of(context).push(
                                           CupertinoPageRoute(
                                               fullscreenDialog: true,
@@ -562,6 +580,10 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                       budgetProvider.selectedBudget =
                                           userProvider
                                               .currentUser.budgets[index];
+                                      userProvider.userService =
+                                          widget.userService;
+                                      budgetProvider.budgetService =
+                                          widget.budgetService;
                                       Navigator.of(context).push(
                                           CupertinoPageRoute(
                                               fullscreenDialog: true,
@@ -630,11 +652,17 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                                                           .selectedBudget =
                                                       userProvider.currentUser
                                                           .budgets[index];
+                                                  print(
+                                                      "Selected budget ==> ${budgetProvider.selectedBudget}");
                                                   var authProvider =
                                                       Provider.of<AuthProvider>(
                                                           context);
                                                   authProvider.auth =
                                                       widget.auth;
+                                                  userProvider.userService =
+                                                      widget.userService;
+                                                  budgetProvider.budgetService =
+                                                      widget.budgetService;
                                                   Navigator.of(context).push(
                                                       MaterialPageRoute(
                                                           builder: (context) =>
@@ -762,6 +790,8 @@ class _BudgetListScreen extends State<BudgetListScreen> {
           // only open create budget window if drawer is closed
           if (_finalDragAmount < 0 && drawerBox == null) {
             authProvider.auth = widget.auth;
+            userProvider.userService = widget.userService;
+            budgetProvider.budgetService = widget.budgetService;
             Navigator.of(context).push(CupertinoPageRoute(
                 fullscreenDialog: true,
                 builder: (context) => CreateBudgetScreen(
@@ -1078,8 +1108,8 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                   // Create user for first time
                   if (userProvider.currentUser == null) {
                     print("creating user...");
-                    userProvider.createUser(_firebaseMessaging, widget.auth,
-                        _database, widget.user);
+                    userProvider.createUser(_firebaseMessaging,
+                        widget.userService, _database, widget.user);
                   }
 
                   return _showBudgetList();
@@ -1097,6 +1127,8 @@ class _BudgetListScreen extends State<BudgetListScreen> {
               elevation: 0,
               onPressed: () {
                 authProvider.auth = widget.auth;
+                userProvider.userService = widget.userService;
+                budgetProvider.budgetService = widget.budgetService;
                 Navigator.of(context).push(CupertinoPageRoute(
                     fullscreenDialog: true,
                     builder: (context) => CreateBudgetScreen(

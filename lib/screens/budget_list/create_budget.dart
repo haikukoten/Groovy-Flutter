@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:Groovy/models/user.dart';
-import 'package:Groovy/providers/auth_provider.dart';
+import 'package:Groovy/providers/budget_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
@@ -67,7 +67,7 @@ class _CreateBudgetScreen extends State<CreateBudgetScreen> {
   @override
   Widget build(BuildContext context) {
     // Access to auth and onSignedIn from ChooseLogin
-    var authProvider = Provider.of<AuthProvider>(context);
+    var budgetProvider = Provider.of<BudgetProvider>(context);
     var uiProvider = Provider.of<UIProvider>(context);
 
     // Check if edit form is valid before creating budget
@@ -82,7 +82,8 @@ class _CreateBudgetScreen extends State<CreateBudgetScreen> {
 
     void _createBudget() {
       if (_validateAndSaveCreateBudget()) {
-        authProvider.auth.createBudget(_database, widget.user, _name, _amount);
+        budgetProvider.budgetService
+            .createBudget(_database, widget.user, _name, _amount);
         Navigator.of(context).pop();
       }
     }

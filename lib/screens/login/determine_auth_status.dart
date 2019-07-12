@@ -1,13 +1,17 @@
+import 'package:Groovy/services/budget_service.dart';
+import 'package:Groovy/services/user_service.dart';
 import 'package:flutter/material.dart';
 import 'package:Groovy/screens/login/choose_login.dart';
-import 'package:Groovy/services/auth.dart';
+import 'package:Groovy/services/auth_service.dart';
 import 'package:Groovy/screens/budget_list/budget_list.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class DetermineAuthStatusScreen extends StatefulWidget {
-  DetermineAuthStatusScreen({this.auth});
+  DetermineAuthStatusScreen({this.auth, this.userService, this.budgetService});
 
   final BaseAuth auth;
+  final UserService userService;
+  final BudgetService budgetService;
 
   @override
   State<StatefulWidget> createState() => new _DetermineAuthStatusScreenState();
@@ -76,6 +80,8 @@ class _DetermineAuthStatusScreenState extends State<DetermineAuthStatusScreen> {
       case AuthStatus.NOT_LOGGED_IN:
         return new ChooseLoginScreen(
           auth: widget.auth,
+          userService: widget.userService,
+          budgetService: widget.budgetService,
           onSignedIn: _onLoggedIn,
         );
         break;
@@ -83,6 +89,8 @@ class _DetermineAuthStatusScreenState extends State<DetermineAuthStatusScreen> {
         if (_user != null) {
           return new BudgetListScreen(
             user: _user,
+            userService: widget.userService,
+            budgetService: widget.budgetService,
             auth: widget.auth,
             onSignedOut: _onSignedOut,
           );

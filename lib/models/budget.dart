@@ -1,6 +1,5 @@
 class Budget {
   String key;
-  String shareKey;
   String createdBy;
   List<dynamic> hiddenFrom;
   List<dynamic> history;
@@ -14,7 +13,6 @@ class Budget {
 
   Budget({
     this.key,
-    this.shareKey,
     this.createdBy,
     this.hiddenFrom,
     this.history,
@@ -29,7 +27,6 @@ class Budget {
 
   Budget.fromMap(Map map) {
     key = map["key"];
-    shareKey = map["shareKey"];
     createdBy = map["createdBy"];
     hiddenFrom = map["hiddenFrom"];
     history = map["history"];
@@ -44,7 +41,6 @@ class Budget {
 
   Budget.fromJson(Map<String, dynamic> json)
       : key = json['key'] as String,
-        shareKey = json['shareKey'] as String,
         createdBy = json['createdBy'] as String,
         hiddenFrom = json['hiddenFrom'] as List<dynamic>,
         history = json['history'] as List<dynamic>,
@@ -56,10 +52,9 @@ class Budget {
         spent = json['spent'] as num,
         userDate = json['userDate'] as List<dynamic>;
 
-  toJson() {
+  Map toJson() {
     return {
       "key": key,
-      "shareKey": shareKey,
       "createdBy": createdBy,
       "hiddenFrom": hiddenFrom,
       "history": history,
