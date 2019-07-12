@@ -9,7 +9,7 @@ class User {
   List<dynamic> deviceTokens;
   bool isPaid;
   List<Budget> budgets;
-  List<dynamic> transactions;
+  List<Transaction> transactions;
 
   User(
       {this.key,
@@ -43,6 +43,37 @@ class User {
       List<dynamic> userTransactions = [];
       (snapshot.value["transactions"] as Map).forEach((key, map) {
         Map transactionMap = map;
+        transactionMap["key"] = key;
+        userTransactions.add(Transaction.fromMap(transactionMap));
+      });
+      transactions = userTransactions;
+    }
+  }
+
+  User.fromMap(Map map) {
+    key = map["key"];
+    name = map["name"];
+    email = map["email"];
+    deviceTokens = map["deviceTokens"];
+    isPaid = map["isPaid"];
+
+    if (map["budgets"] != null) {
+      List<Budget> userBudgets = [];
+      Map budgetObjects = map["budgets"];
+      budgetObjects.forEach((key, budget) {
+        Map budgetMap = budget;
+        budgetMap["key"] = key;
+        userBudgets.add(Budget.fromMap(budgetMap));
+      });
+
+      budgets = userBudgets;
+    }
+
+    if (map["transactions"] != null) {
+      List<dynamic> userTransactions = [];
+      Map transactionObjects = map["transactions"];
+      transactionObjects.forEach((key, transaction) {
+        Map transactionMap = transaction;
         transactionMap["key"] = key;
         userTransactions.add(Transaction.fromMap(transactionMap));
       });

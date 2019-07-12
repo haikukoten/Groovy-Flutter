@@ -72,10 +72,10 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
 
     _shareBudget() async {
       if (_validateAndSaveShare()) {
-        // send budget to shared user
         // get user from shared email
         User user =
             await userProvider.userService.getUserFromEmail(_database, _email);
+
         // User doesn't exist
         if (user.email == null) {
           showAlertDialog(
@@ -106,9 +106,12 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
           // Add new email
           newSharedWith.add(_email.toLowerCase());
 
+          // Update budget's sharedWith with new shared email
           budgetProvider.selectedBudget.sharedWith = newSharedWith;
           budgetProvider.budgetService.updateBudget(_database,
               userProvider.currentUser, budgetProvider.selectedBudget);
+
+          // Share budget with new user
           budgetProvider.budgetService
               .shareBudget(_database, user, budgetProvider.selectedBudget);
 

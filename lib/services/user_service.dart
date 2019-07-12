@@ -27,13 +27,20 @@ class UserService {
   }
 
   Future<User> getUserFromEmail(FirebaseDatabase database, String email) async {
+    print(email);
     return await database
         .reference()
         .child("users")
         .orderByChild('email')
         .equalTo(email)
         .once()
-        .then((DataSnapshot snapshot) =>
-            snapshot.value == null ? User() : User.fromSnapshot(snapshot));
+        .then((DataSnapshot snapshot) {
+      Map userMap = {};
+      if (snapshot.value != null) {
+        userMap = (snapshot.value as Map).values.first;
+        userMap["key"] = (snapshot.value as Map).keys.first;
+      }
+      return userMap == {} ? User() : User.fromMap(userMap);
+    });
   }
 }
