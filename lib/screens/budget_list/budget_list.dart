@@ -157,15 +157,18 @@ class _BudgetListScreen extends State<BudgetListScreen> {
   _onUserAdded(Event event) {
     var userProvider = Provider.of<UserProvider>(context);
     userProvider.currentUser = User.fromSnapshot(event.snapshot);
-    userProvider.updateUserDeviceTokens(_firebaseMessaging, widget.userService,
-        _database, userProvider.currentUser);
+    widget.userService.updateUserDeviceTokens(_firebaseMessaging,
+        widget.userService, _database, userProvider.currentUser);
   }
 
   _onUserChanged(Event event) {
-    var userProvider = Provider.of<UserProvider>(context);
-    setState(() {
-      userProvider.currentUser = User.fromSnapshot(event.snapshot);
-    });
+    User user = User.fromSnapshot(event.snapshot);
+    if (user.email == widget.user.email) {
+      var userProvider = Provider.of<UserProvider>(context);
+      setState(() {
+        userProvider.currentUser = user;
+      });
+    }
   }
 
   num totalAmountSpent(UserProvider userProvider) {
@@ -204,7 +207,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
     var uiProvider = Provider.of<UIProvider>(context);
     var userProvider = Provider.of<UserProvider>(context);
 
-    userProvider
+    widget.userService
         .removeUserDeviceToken(_firebaseMessaging, widget.userService,
             _database, userProvider.currentUser)
         .then((_) {
@@ -1109,8 +1112,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
 
                   // Create user for first time
                   if (userProvider.currentUser == null) {
-                    print("creating user...");
-                    userProvider.createUser(_firebaseMessaging,
+                    widget.userService.createUser(_firebaseMessaging,
                         widget.userService, _database, widget.user);
                   }
 

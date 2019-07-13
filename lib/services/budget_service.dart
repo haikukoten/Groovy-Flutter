@@ -61,7 +61,7 @@ class BudgetService {
         .child("users")
         .child(user.key)
         .child("budgets")
-        .push()
+        .child(budget.key)
         .set(budget.toJson());
   }
 

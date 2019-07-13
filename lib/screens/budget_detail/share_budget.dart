@@ -108,19 +108,19 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
 
           // Update budget's sharedWith with new shared email
           budgetProvider.selectedBudget.sharedWith = newSharedWith;
-          budgetProvider.budgetService.updateBudget(_database,
-              userProvider.currentUser, budgetProvider.selectedBudget);
 
           // Share budget with new user
           budgetProvider.budgetService
               .shareBudget(_database, user, budgetProvider.selectedBudget);
 
           // update all users on sharedWith
+          await userProvider.userService.updateSharedUsers(
+              _database, budgetProvider.selectedBudget, budgetProvider);
         }
       }
     }
 
-    _removeShared(String email) {
+    _removeShared(String email) async {
       var newSharedWith = [];
       for (String sharedWithEmail in budgetProvider.selectedBudget.sharedWith) {
         newSharedWith.add(sharedWithEmail);
@@ -132,12 +132,20 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
         budgetProvider.selectedBudget.isShared = false;
       }
 
+      // Update budget's sharedWith with removed shared email
       budgetProvider.selectedBudget.sharedWith = newSharedWith;
-      budgetProvider.budgetService.updateBudget(
-          _database, userProvider.currentUser, budgetProvider.selectedBudget);
 
-      // remove budget from shared user (email)
+      // get user from shared email
+      User user =
+          await userProvider.userService.getUserFromEmail(_database, email);
+
+      // remove budget from user
+      budgetProvider.budgetService
+          .removeSharedBudget(_database, user, budgetProvider.selectedBudget);
+
       // update all users on sharedWith
+      await userProvider.userService.updateSharedUsers(
+          _database, budgetProvider.selectedBudget, budgetProvider);
     }
 
     Widget _showIcon() {
@@ -230,7 +238,7 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
                   return 'Budget shared with user already';
                 }
               },
-              onFieldSubmitted: (value) {
+              onFieldSubmitted: (value) async {
                 _shareBudget();
                 _shareBudgetEmailTextController.text = '';
               },
@@ -523,7 +531,7 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
             backgroundColor: Colors.grey[300],
             foregroundColor: Colors.black87,
             child: Icon(Icons.check),
-            onPressed: () {
+            onPressed: () async {
               _shareBudget();
               _shareBudgetEmailTextController.text = '';
             },
