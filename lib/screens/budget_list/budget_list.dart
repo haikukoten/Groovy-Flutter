@@ -162,13 +162,10 @@ class _BudgetListScreen extends State<BudgetListScreen> {
   }
 
   _onUserChanged(Event event) {
-    User user = User.fromSnapshot(event.snapshot);
-    if (user.email == widget.user.email) {
-      var userProvider = Provider.of<UserProvider>(context);
-      setState(() {
-        userProvider.currentUser = user;
-      });
-    }
+    var userProvider = Provider.of<UserProvider>(context);
+    setState(() {
+      userProvider.currentUser = User.fromSnapshot(event.snapshot);
+    });
   }
 
   num totalAmountSpent(UserProvider userProvider) {
@@ -220,6 +217,8 @@ class _BudgetListScreen extends State<BudgetListScreen> {
 
         // clear values
         uiProvider.isLoading = false;
+        userProvider.currentUser = null;
+        userProvider = null;
         budgetProvider.notAcceptedSharedBudgets = [];
         tokenPlatorms = [];
         widget.auth.signOut();
