@@ -240,7 +240,6 @@ class _BudgetListScreen extends State<BudgetListScreen> {
     var authProvider = Provider.of<AuthProvider>(context);
     var storageProvider = Provider.of<StorageProvider>(context);
 
-    // TODO: if budget is shared, alert user that all shared users will also have this deleted. So otherwise just remove yourself from share menu to remove yourself.
     void _deleteBudget(Budget budget) async {
       showAlertDialog(context, "Delete ${budget.name}",
           "Are you sure you want to delete this budget?", [
@@ -259,15 +258,30 @@ class _BudgetListScreen extends State<BudgetListScreen> {
             style: TextStyle(
                 color: uiProvider.isLightTheme ? Colors.black : Colors.white),
           ),
-          onPressed: () {
-            print(budget.toString());
+          onPressed: () async {
+            if (budget.isShared) {
+              var sharedWith = [];
+              budget.sharedWith.forEach((email) {
+                sharedWith.add(email);
+              });
+              // remove user from budget shared with
+              sharedWith.remove(userProvider.currentUser.email);
+              budget.sharedWith = sharedWith;
+
+              // if shared with is only 1 item, then isShared is false
+              if (sharedWith.length == 1) {
+                budget.isShared = false;
+              }
+
+              // Update all users on sharedWith
+              await widget.userService
+                  .updateSharedUsers(_database, budget, budgetProvider);
+            }
+
+            // Delete budget for current user
             widget.budgetService
                 .deleteBudget(_database, userProvider.currentUser, budget);
             print("Delete ${budget.key} successful");
-            // int budgetIndex = userProvider.currentUser.budgets.indexOf(budget);
-            // setState(() {
-            //   userProvider.currentUser.budgets.removeAt(budgetIndex);
-            // });
             Navigator.of(context).pop();
           },
         )
