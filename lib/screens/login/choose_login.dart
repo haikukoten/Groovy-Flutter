@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:io' show Platform;
 import 'dart:math';
 import 'package:Groovy/providers/auth_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
@@ -223,6 +224,11 @@ class _ChooseLoginScreen extends State<ChooseLoginScreen> {
     return Scaffold(
       body: Stack(
         children: <Widget>[
+          Platform.isAndroid
+              ? AppBar(
+                  brightness: Brightness.dark,
+                )
+              : Container(),
           Positioned.fill(
             child: AnimatedBackground(),
           ),

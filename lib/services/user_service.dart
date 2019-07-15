@@ -7,7 +7,7 @@ import '../models/user.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class UserService {
-  Future<void> createUser(
+  Future<User> createUser(
       FirebaseMessaging firebaseMessaging,
       UserService userService,
       FirebaseDatabase database,
@@ -21,15 +21,27 @@ class UserService {
         name: firebaseUser.displayName,
         isPaid: false,
         deviceTokens: deviceTokens);
-    return await database.reference().child("users").push().set(user.toJson());
+    return await database
+        .reference()
+        .child("users")
+        .push()
+        .set(user.toJson())
+        .then((_) {
+      return user;
+    });
   }
 
   updateUser(FirebaseDatabase database, User user) async {
     return await database
         .reference()
         .child("users")
-        .child(user.key)
-        .set(user.toJson());
+        .orderByChild("email")
+        .equalTo(user.email)
+        .once()
+        .then((snapshot) {
+      var key = (snapshot.value as Map).keys.first;
+      database.reference().child("users").child(key).set(user.toJson());
+    });
   }
 
   // for users in sharedWith, update the users with budget
@@ -100,14 +112,16 @@ class UserService {
       UserService userService, FirebaseDatabase database, User user) async {
     var token = await firebaseMessaging.getToken();
     var deviceTokens = [];
-    user.deviceTokens.forEach((token) => deviceTokens.add(token));
+    if (user != null) {
+      user.deviceTokens.forEach((token) => deviceTokens.add(token));
 
-    // If user contains current device token, remove it
-    if (deviceTokens.contains(token)) {
-      deviceTokens.remove(token);
+      // If user contains current device token, remove it
+      if (deviceTokens.contains(token)) {
+        deviceTokens.remove(token);
+      }
+
+      user.deviceTokens = deviceTokens;
+      userService.updateUser(database, user);
     }
-
-    user.deviceTokens = deviceTokens;
-    userService.updateUser(database, user);
   }
 }

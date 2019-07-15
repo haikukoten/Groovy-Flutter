@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:io' show Platform;
 import 'package:Groovy/providers/auth_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
 import 'package:flutter/material.dart';
@@ -417,7 +418,7 @@ class _EmailLoginScreen extends State<EmailLoginScreen> {
                   fontSize: 20.0,
                   fontWeight: FontWeight.w500)),
           iconTheme: IconThemeData(color: Colors.black87),
-          brightness: Brightness.light,
+          brightness: Platform.isAndroid ? Brightness.dark : Brightness.light,
           elevation: 0.0,
         ),
         body: Stack(

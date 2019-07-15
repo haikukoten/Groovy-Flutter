@@ -22,6 +22,7 @@ import "package:intl/intl.dart";
 import 'package:flutter/material.dart';
 import 'package:Groovy/services/auth_service.dart';
 import 'package:Groovy/models/budget.dart';
+import 'package:overlay_support/overlay_support.dart';
 import 'package:provider/provider.dart';
 import '../budget_detail/edit_budget.dart';
 import '../shared/swipe_actions/swipe_widget.dart';
@@ -58,7 +59,6 @@ class _BudgetListScreen extends State<BudgetListScreen> {
   final _currency = NumberFormat.simpleCurrency();
   SharedPreferences _preferences;
 
-  StreamSubscription<Event> _onUserAddedSubscription;
   StreamSubscription<Event> _onUserChangedSubscription;
 
   double _initialDragAmount = 0;
@@ -83,7 +83,6 @@ class _BudgetListScreen extends State<BudgetListScreen> {
         .orderByChild("email")
         .equalTo(widget.user.email);
 
-    _onUserAddedSubscription = _userQuery.onChildAdded.listen(_onUserAdded);
     _onUserChangedSubscription =
         _userQuery.onChildChanged.listen(_onUserChanged);
 
@@ -93,7 +92,6 @@ class _BudgetListScreen extends State<BudgetListScreen> {
 
   @override
   void dispose() {
-    _onUserAddedSubscription.cancel();
     _onUserChangedSubscription.cancel();
     super.dispose();
   }
@@ -109,13 +107,13 @@ class _BudgetListScreen extends State<BudgetListScreen> {
 
     _firebaseMessaging.configure(
       onMessage: (Map<String, dynamic> message) async {
-        print('on message $message');
+        _showSimpleNotificationForMessage(message);
       },
       onResume: (Map<String, dynamic> message) async {
-        print('on resume $message');
+        _showSimpleNotificationForMessage(message);
       },
       onLaunch: (Map<String, dynamic> message) async {
-        print('on launch $message');
+        _showSimpleNotificationForMessage(message);
       },
     );
   }
@@ -140,6 +138,19 @@ class _BudgetListScreen extends State<BudgetListScreen> {
     });
   }
 
+  void _showSimpleNotificationForMessage(Map<String, dynamic> message) {
+    var data = message["data"];
+    var from = data["nameOfSentFrom"];
+    var uiProvider = Provider.of<UIProvider>(context);
+    showSimpleNotification(
+        Text(
+          "$from shared a budget with you",
+          style: TextStyle(
+              color: uiProvider.isLightTheme ? Colors.black : Colors.white),
+        ),
+        background: uiProvider.isLightTheme ? Colors.white : Colors.black);
+  }
+
   void _getLocalStorageForNotAcceptedSharedBudgets() {
     var storageProvider = Provider.of<StorageProvider>(context);
     var budgetProvider = Provider.of<BudgetProvider>(context);
@@ -152,13 +163,6 @@ class _BudgetListScreen extends State<BudgetListScreen> {
         budgetProvider.notAcceptedSharedBudgets.add(notSharedBudget);
       });
     }
-  }
-
-  _onUserAdded(Event event) {
-    var userProvider = Provider.of<UserProvider>(context);
-    userProvider.currentUser = User.fromSnapshot(event.snapshot);
-    widget.userService.updateUserDeviceTokens(_firebaseMessaging,
-        widget.userService, _database, userProvider.currentUser);
   }
 
   _onUserChanged(Event event) {
@@ -217,8 +221,6 @@ class _BudgetListScreen extends State<BudgetListScreen> {
 
         // clear values
         uiProvider.isLoading = false;
-        userProvider.currentUser = null;
-        userProvider = null;
         budgetProvider.notAcceptedSharedBudgets = [];
         tokenPlatorms = [];
         widget.auth.signOut();
@@ -1107,12 +1109,6 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                   if (!_initialized) {
                     _getLocalStorageForNotAcceptedSharedBudgets();
                     _initialized = true;
-                  }
-
-                  // Create user for first time
-                  if (userProvider.currentUser == null) {
-                    widget.userService.createUser(_firebaseMessaging,
-                        widget.userService, _database, widget.user);
                   }
 
                   return _showBudgetList();

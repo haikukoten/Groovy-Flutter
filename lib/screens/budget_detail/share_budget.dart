@@ -6,6 +6,7 @@ import 'package:Groovy/providers/ui_provider.dart';
 import 'package:Groovy/providers/user_provider.dart';
 import 'package:Groovy/screens/shared/swipe_actions/swipe_widget.dart';
 import 'package:Groovy/services/auth_service.dart';
+import 'package:Groovy/services/notification_service.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -33,6 +34,7 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
   TextEditingController _shareBudgetEmailTextController =
       TextEditingController();
   FocusNode _shareBudgetFocusNode = FocusNode();
+  SendNotification notification = SendNotification();
 
   double _initialDragAmount;
   double _finalDragAmount;
@@ -68,6 +70,23 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
         return true;
       }
       return false;
+    }
+
+    Future<void> _sendNotificationTo(User user) {
+      user.deviceTokens.forEach((token) {
+        Map<String, Object> data;
+        data = notification.createData(
+            "",
+            "${widget.user.displayName} shared a budget with you 💸",
+            {
+              "click_action": "FLUTTER_NOTIFICATION_CLICK",
+              "nameOfSentFrom": "${widget.user.displayName}",
+            },
+            token);
+
+        return notification.send(data);
+      });
+      return null;
     }
 
     _shareBudget() async {
@@ -113,9 +132,13 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
           budgetProvider.budgetService
               .shareBudget(_database, user, budgetProvider.selectedBudget);
 
-          // update all users on sharedWith
+          // Update all users on sharedWith
           await userProvider.userService.updateSharedUsers(
               _database, budgetProvider.selectedBudget, budgetProvider);
+
+          if (user.email != null) {
+            await _sendNotificationTo(user);
+          }
         }
       }
     }
