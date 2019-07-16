@@ -7,7 +7,7 @@ import '../models/user.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class UserService {
-  Future<User> createUser(
+  Future<void> createUser(
       FirebaseMessaging firebaseMessaging,
       UserService userService,
       FirebaseDatabase database,
@@ -21,14 +21,7 @@ class UserService {
         name: firebaseUser.displayName,
         isPaid: false,
         deviceTokens: deviceTokens);
-    return await database
-        .reference()
-        .child("users")
-        .push()
-        .set(user.toJson())
-        .then((_) {
-      return user;
-    });
+    return await database.reference().child("users").push().set(user.toJson());
   }
 
   updateUser(FirebaseDatabase database, User user) async {
@@ -105,7 +98,7 @@ class UserService {
     }
 
     user.deviceTokens = deviceTokens;
-    userService.updateUser(database, user);
+    return userService.updateUser(database, user);
   }
 
   Future<void> removeUserDeviceToken(FirebaseMessaging firebaseMessaging,

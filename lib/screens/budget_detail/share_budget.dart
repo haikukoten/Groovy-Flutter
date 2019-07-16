@@ -73,19 +73,21 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
     }
 
     Future<void> _sendNotificationTo(User user) {
-      user.deviceTokens.forEach((token) {
-        Map<String, Object> data;
-        data = notification.createData(
-            "",
-            "${widget.user.displayName} shared a budget with you 💸",
-            {
-              "click_action": "FLUTTER_NOTIFICATION_CLICK",
-              "nameOfSentFrom": "${widget.user.displayName}",
-            },
-            token);
+      if (user.deviceTokens != null) {
+        user.deviceTokens.forEach((token) {
+          Map<String, Object> data;
+          data = notification.createData(
+              "",
+              "${widget.user.displayName} shared a budget with you 💸",
+              {
+                "click_action": "FLUTTER_NOTIFICATION_CLICK",
+                "nameOfSentFrom": "${widget.user.displayName}",
+              },
+              token);
 
-        return notification.send(data);
-      });
+          return notification.send(data);
+        });
+      }
       return null;
     }
 

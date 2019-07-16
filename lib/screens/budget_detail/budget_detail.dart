@@ -65,11 +65,30 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
             style: TextStyle(
                 color: uiProvider.isLightTheme ? Colors.black : Colors.white),
           ),
-          onPressed: () {
+          onPressed: () async {
+            if (budget.isShared) {
+              var sharedWith = [];
+              budget.sharedWith.forEach((email) {
+                sharedWith.add(email);
+              });
+              // remove user from budget shared with
+              sharedWith.remove(userProvider.currentUser.email);
+              budget.sharedWith = sharedWith;
+
+              // if shared with is only 1 item, then isShared is false
+              if (sharedWith.length == 1) {
+                budget.isShared = false;
+              }
+
+              // Update all users on sharedWith
+              await userProvider.userService
+                  .updateSharedUsers(_database, budget, budgetProvider);
+            }
+
+            // Delete budget for current user
             budgetProvider.budgetService
                 .deleteBudget(_database, userProvider.currentUser, budget);
             print("Delete ${budget.key} successful");
-            userProvider.currentUser.budgets.remove(budget);
             Navigator.of(context).pop();
             Navigator.of(context).pop();
           },

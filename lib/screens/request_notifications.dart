@@ -22,12 +22,23 @@ class _RequestNotificationsScreen extends State<RequestNotificationsScreen> {
   void initState() {
     super.initState();
     _getSavedPreferences();
+    _listenToSettings();
   }
 
   void _getSavedPreferences() async {
     _preferences = await SharedPreferences.getInstance();
     // User has had the option to choose notification settings
     _preferences.setBool("notifications", true);
+  }
+
+  void _listenToSettings() {
+    _firebaseMessaging.onIosSettingsRegistered
+        .listen((IosNotificationSettings settings) {
+      if (settings.alert == true) {
+        Navigator.pop(context);
+      }
+      print("Settings registered: $settings");
+    });
   }
 
   @override

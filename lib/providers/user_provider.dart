@@ -16,4 +16,10 @@ class UserProvider extends ChangeNotifier {
     _currentUser = currentUser;
     notifyListeners();
   }
+
+  toJSONEncodable(List<User> list) {
+    return list.map((User user) {
+      return user.toJson();
+    }).toList();
+  }
 }

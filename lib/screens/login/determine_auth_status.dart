@@ -1,4 +1,3 @@
-import 'package:Groovy/providers/user_provider.dart';
 import 'package:Groovy/services/budget_service.dart';
 import 'package:Groovy/services/user_service.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -8,7 +7,6 @@ import 'package:Groovy/screens/login/choose_login.dart';
 import 'package:Groovy/services/auth_service.dart';
 import 'package:Groovy/screens/budget_list/budget_list.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:provider/provider.dart';
 
 class DetermineAuthStatusScreen extends StatefulWidget {
   DetermineAuthStatusScreen({this.auth, this.userService, this.budgetService});
@@ -49,12 +47,11 @@ class _DetermineAuthStatusScreenState extends State<DetermineAuthStatusScreen> {
   }
 
   void _onLoggedIn() {
-    widget.auth.getCurrentUser().then((user) {
+    widget.auth.getCurrentUser().then((user) async {
       setState(() {
         _user = user;
-        // User on opening app is overriding any budgets that get shared with them while the app is terminated
-        _initDatabaseUser(user);
       });
+      await _getDatabaseUser(user);
     });
     setState(() {
       authStatus = AuthStatus.LOGGED_IN;
@@ -68,23 +65,16 @@ class _DetermineAuthStatusScreenState extends State<DetermineAuthStatusScreen> {
     });
   }
 
-  void _initDatabaseUser(FirebaseUser user) async {
-    var userProvider = Provider.of<UserProvider>(context);
-    widget.userService
-        .getUserFromEmail(_database, user.email)
-        .then((retrievedUser) {
-      if (retrievedUser.email == null) {
-        widget.userService
-            .createUser(_firebaseMessaging, widget.userService, _database, user)
-            .then((createdUser) {
-          userProvider.currentUser = createdUser;
-        });
-      } else {
-        userProvider.currentUser = retrievedUser;
-        widget.userService.updateUserDeviceTokens(
-            _firebaseMessaging, widget.userService, _database, retrievedUser);
-      }
-    });
+  Future<void> _getDatabaseUser(FirebaseUser user) async {
+    var retrievedUser =
+        await widget.userService.getUserFromEmail(_database, user.email);
+    if (retrievedUser.email == null) {
+      return await widget.userService
+          .createUser(_firebaseMessaging, widget.userService, _database, user);
+    } else {
+      return await widget.userService.updateUserDeviceTokens(
+          _firebaseMessaging, widget.userService, _database, retrievedUser);
+    }
   }
 
   Widget _buildWaitingScreen() {

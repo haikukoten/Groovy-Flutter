@@ -59,14 +59,13 @@ class _BudgetListScreen extends State<BudgetListScreen> {
   final _currency = NumberFormat.simpleCurrency();
   SharedPreferences _preferences;
 
+  StreamSubscription<Event> _onUserAddedSubscription;
   StreamSubscription<Event> _onUserChangedSubscription;
 
   double _initialDragAmount = 0;
   double _finalDragAmount = 0;
 
   bool _initialized = false;
-  User currentUser;
-  List<String> tokenPlatorms = [];
 
   @override
   void initState() {
@@ -83,6 +82,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
         .orderByChild("email")
         .equalTo(widget.user.email);
 
+    _onUserAddedSubscription = _userQuery.onChildAdded.listen(_onUserAdded);
     _onUserChangedSubscription =
         _userQuery.onChildChanged.listen(_onUserChanged);
 
@@ -92,6 +92,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
 
   @override
   void dispose() {
+    _onUserAddedSubscription.cancel();
     _onUserChangedSubscription.cancel();
     super.dispose();
   }
@@ -129,13 +130,6 @@ class _BudgetListScreen extends State<BudgetListScreen> {
           fullscreenDialog: true,
           builder: (context) => RequestNotificationsScreen()));
     }
-    _firebaseMessaging.onIosSettingsRegistered
-        .listen((IosNotificationSettings settings) {
-      if (settings.alert == true) {
-        Navigator.pop(context);
-      }
-      print("Settings registered: $settings");
-    });
   }
 
   void _showSimpleNotificationForMessage(Map<String, dynamic> message) {
@@ -163,6 +157,13 @@ class _BudgetListScreen extends State<BudgetListScreen> {
         budgetProvider.notAcceptedSharedBudgets.add(notSharedBudget);
       });
     }
+  }
+
+  _onUserAdded(Event event) {
+    var userProvider = Provider.of<UserProvider>(context);
+    setState(() {
+      userProvider.currentUser = User.fromSnapshot(event.snapshot);
+    });
   }
 
   _onUserChanged(Event event) {
@@ -222,7 +223,6 @@ class _BudgetListScreen extends State<BudgetListScreen> {
         // clear values
         uiProvider.isLoading = false;
         budgetProvider.notAcceptedSharedBudgets = [];
-        tokenPlatorms = [];
         widget.auth.signOut();
         widget.onSignedOut();
         print("sign out successful");
