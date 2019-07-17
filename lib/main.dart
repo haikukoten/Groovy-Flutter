@@ -19,7 +19,6 @@ import 'screens/budget_detail/budget_history.dart';
 import 'providers/auth_provider.dart';
 import 'providers/ui_provider.dart';
 import 'providers/budget_provider.dart';
-import 'providers/storage_provider.dart';
 import 'package:overlay_support/overlay_support.dart';
 
 // TODO: Update Android nav bar colors
@@ -40,7 +39,7 @@ class MyApp extends StatelessWidget {
     ]);
 
     dynamic _buildRoute(RouteSettings settings, Widget builder) {
-      return new MaterialPageRoute(
+      return MaterialPageRoute(
         settings: settings,
         builder: (ctx) => builder,
       );
@@ -132,9 +131,6 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider<UIProvider>(
           builder: (context) => UIProvider(),
-        ),
-        ChangeNotifierProvider<StorageProvider>(
-          builder: (context) => StorageProvider(),
         ),
       ],
       child: OverlaySupport(

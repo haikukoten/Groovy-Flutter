@@ -353,7 +353,7 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
         },
         onPanEnd: (details) {
           // Swipe up to show 'Add Purchase' screen
-          if (_finalDragAmount < 0) {
+          if (_finalDragAmount < -80) {
             Navigator.of(context).push(CupertinoPageRoute(
                 fullscreenDialog: true,
                 builder: (context) => AddPurchaseScreen(
@@ -362,7 +362,7 @@ class _BudgetDetailScreen extends State<BudgetDetailScreen> {
           }
 
           // Swipe down to show modal menu
-          if (_finalDragAmount > 0) {
+          if (_finalDragAmount > 80) {
             _showModalMenu();
           }
         },

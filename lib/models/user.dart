@@ -1,6 +1,7 @@
+import 'budget.dart';
+import 'package:Groovy/models/not_accepted_budget.dart';
 import 'package:Groovy/models/transaction.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'budget.dart';
 
 class User {
   String key;
@@ -9,6 +10,7 @@ class User {
   List<dynamic> deviceTokens;
   bool isPaid;
   List<Budget> budgets;
+  List<NotAcceptedBudget> notAcceptedBudgets;
   List<Transaction> transactions;
 
   User(
@@ -18,6 +20,7 @@ class User {
       this.deviceTokens,
       this.isPaid,
       this.budgets,
+      this.notAcceptedBudgets,
       this.transactions});
 
   User.fromSnapshot(DataSnapshot snapshot) {
@@ -37,6 +40,19 @@ class User {
       });
 
       budgets = userBudgets;
+    }
+
+    if (snapshot.value["notAcceptedBudgets"] != null) {
+      List<NotAcceptedBudget> userNotAcceptedBudgets = [];
+      Map notAcceptedBudgetObjects = snapshot.value["notAcceptedBudgets"];
+      notAcceptedBudgetObjects.forEach((key, budget) {
+        Map notAcceptedBudgetMap = budget;
+        notAcceptedBudgetMap["key"] = key;
+        userNotAcceptedBudgets
+            .add(NotAcceptedBudget.fromMap(notAcceptedBudgetMap));
+      });
+
+      notAcceptedBudgets = userNotAcceptedBudgets;
     }
 
     if (snapshot.value["transactions"] != null) {
@@ -69,6 +85,19 @@ class User {
       budgets = userBudgets;
     }
 
+    if (map["notAcceptedBudgets"] != null) {
+      List<NotAcceptedBudget> userNotAcceptedBudgets = [];
+      Map notAcceptedBudgetObjects = map["notAcceptedBudgets"];
+      notAcceptedBudgetObjects.forEach((key, budget) {
+        Map notAcceptedBudgetMap = budget;
+        notAcceptedBudgetMap["key"] = key;
+        userNotAcceptedBudgets
+            .add(NotAcceptedBudget.fromMap(notAcceptedBudgetMap));
+      });
+
+      notAcceptedBudgets = userNotAcceptedBudgets;
+    }
+
     if (map["transactions"] != null) {
       List<dynamic> userTransactions = [];
       Map transactionObjects = map["transactions"];
@@ -90,17 +119,26 @@ class User {
       });
     }
 
+    var notAcceptedBudgetsObject = {};
+    if (notAcceptedBudgets != null) {
+      notAcceptedBudgets.forEach((budget) {
+        var budgetAsJSON = budget.toJson();
+        notAcceptedBudgetsObject[budget.key] = budgetAsJSON;
+      });
+    }
+
     return {
       "name": name,
       "email": email,
       "deviceTokens": deviceTokens,
       "isPaid": isPaid,
       "budgets": budgetsObject,
+      "notAcceptedBudgets": notAcceptedBudgetsObject,
       "transactions": transactions
     };
   }
 
   String toString() {
-    return "key: $key, name: $name, email: $email, deviceTokens: $deviceTokens, isPaid: $isPaid, budgets: $budgets, transactions: $transactions";
+    return "key: $key, name: $name, email: $email, deviceTokens: $deviceTokens, isPaid: $isPaid, budgets: $budgets, notAcceptedBudgets: $notAcceptedBudgets, transactions: $transactions";
   }
 }

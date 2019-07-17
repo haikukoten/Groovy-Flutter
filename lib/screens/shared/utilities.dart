@@ -26,6 +26,24 @@ Widget showCircularProgress(BuildContext context) {
   );
 }
 
+Widget backgroundGradientWithColors(Color top, Color bottom) {
+  return Container(
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [top, bottom],
+      ),
+    ),
+  );
+}
+
+Widget backgroundWithSolidColor(Color color) {
+  return Container(
+    color: color,
+  );
+}
+
 Widget onBottom(Widget child) {
   return Positioned.fill(
     child: Align(

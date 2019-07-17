@@ -130,11 +130,12 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
           // Update budget's sharedWith with new shared email
           budgetProvider.selectedBudget.sharedWith = newSharedWith;
 
-          // Share budget with new user
+          // Share budget with new user (add to new user's notAcceptedBudgets)
           budgetProvider.budgetService
               .shareBudget(_database, user, budgetProvider.selectedBudget);
 
           // Update all users on sharedWith
+          // will check if budget exists in the user's budgets or notAcceptedBudgets and update it accordingly
           await userProvider.userService.updateSharedUsers(
               _database, budgetProvider.selectedBudget, budgetProvider);
 
@@ -165,10 +166,12 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
           await userProvider.userService.getUserFromEmail(_database, email);
 
       // remove budget from user
+      // will check if budget exists in the user's budgets or notAcceptedBudgets and remove it accordingly
       budgetProvider.budgetService
           .removeSharedBudget(_database, user, budgetProvider.selectedBudget);
 
-      // update all users on sharedWith
+      // Update all users on sharedWith
+      // will check if budget exists in the user's budgets or notAcceptedBudgets and update it accordingly
       await userProvider.userService.updateSharedUsers(
           _database, budgetProvider.selectedBudget, budgetProvider);
     }

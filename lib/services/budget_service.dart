@@ -30,16 +30,39 @@ class BudgetService {
     }
   }
 
+  // Checks if budget exists in the user's budgets or notAcceptedBudgets and update it accordingly
   Future<void> updateBudget(
       FirebaseDatabase database, User user, Budget budget) async {
     if (budget != null) {
-      return await database
-          .reference()
-          .child("users")
-          .child(user.key)
-          .child("budgets")
-          .child(budget.key)
-          .set(budget.toJson());
+      // Update user's budget list if budget exists
+      if (user.budgets != null) {
+        user.budgets.forEach((userBudget) async {
+          if (userBudget.key == budget.key) {
+            return await database
+                .reference()
+                .child("users")
+                .child(user.key)
+                .child("budgets")
+                .child(budget.key)
+                .set(budget.toJson());
+          }
+        });
+      }
+
+      // Update user's not accepted budget list if budget exists
+      if (user.notAcceptedBudgets != null) {
+        user.notAcceptedBudgets.forEach((notAcceptedBudget) async {
+          if (notAcceptedBudget.key == budget.key) {
+            return await database
+                .reference()
+                .child("users")
+                .child(user.key)
+                .child("notAcceptedBudgets")
+                .child(budget.key)
+                .set(budget.toJson());
+          }
+        });
+      }
     }
   }
 
@@ -60,19 +83,44 @@ class BudgetService {
         .reference()
         .child("users")
         .child(user.key)
-        .child("budgets")
+        .child("notAcceptedBudgets")
         .child(budget.key)
         .set(budget.toJson());
   }
 
+  // Checks if budget exists in the user's budgets or notAcceptedBudgets and remove it accordingly
   Future<void> removeSharedBudget(
       FirebaseDatabase database, User user, Budget budget) async {
-    return await database
-        .reference()
-        .child("users")
-        .child(user.key)
-        .child("budgets")
-        .child(budget.key)
-        .remove();
+    if (budget != null) {
+      // Update user's budget list if budget exists
+      if (user.budgets != null) {
+        user.budgets.forEach((userBudget) async {
+          if (userBudget.key == budget.key) {
+            return await database
+                .reference()
+                .child("users")
+                .child(user.key)
+                .child("budgets")
+                .child(budget.key)
+                .remove();
+          }
+        });
+      }
+
+      // Update user's not accepted budget list if budget exists
+      if (user.notAcceptedBudgets != null) {
+        user.notAcceptedBudgets.forEach((notAcceptedBudget) async {
+          if (notAcceptedBudget.key == budget.key) {
+            return await database
+                .reference()
+                .child("users")
+                .child(user.key)
+                .child("notAcceptedBudgets")
+                .child(budget.key)
+                .remove();
+          }
+        });
+      }
+    }
   }
 }

@@ -4,8 +4,8 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:Groovy/screens/login/choose_login.dart';
+import 'package:Groovy/screens/home.dart';
 import 'package:Groovy/services/auth_service.dart';
-import 'package:Groovy/screens/budget_list/budget_list.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class DetermineAuthStatusScreen extends StatefulWidget {
@@ -16,7 +16,7 @@ class DetermineAuthStatusScreen extends StatefulWidget {
   final BudgetService budgetService;
 
   @override
-  State<StatefulWidget> createState() => new _DetermineAuthStatusScreenState();
+  State<StatefulWidget> createState() => _DetermineAuthStatusScreenState();
 }
 
 enum AuthStatus {
@@ -82,8 +82,8 @@ class _DetermineAuthStatusScreenState extends State<DetermineAuthStatusScreen> {
       body: Container(
         alignment: Alignment.center,
         child: CircularProgressIndicator(
-            valueColor: new AlwaysStoppedAnimation<Color>(
-                Colors.black.withOpacity(0.5))),
+            valueColor:
+                AlwaysStoppedAnimation<Color>(Colors.black.withOpacity(0.5))),
       ),
     );
   }
@@ -95,7 +95,7 @@ class _DetermineAuthStatusScreenState extends State<DetermineAuthStatusScreen> {
         return _buildWaitingScreen();
         break;
       case AuthStatus.NOT_LOGGED_IN:
-        return new ChooseLoginScreen(
+        return ChooseLoginScreen(
           auth: widget.auth,
           userService: widget.userService,
           budgetService: widget.budgetService,
@@ -104,7 +104,7 @@ class _DetermineAuthStatusScreenState extends State<DetermineAuthStatusScreen> {
         break;
       case AuthStatus.LOGGED_IN:
         if (_user != null) {
-          return new BudgetListScreen(
+          return HomeScreen(
             user: _user,
             userService: widget.userService,
             budgetService: widget.budgetService,
