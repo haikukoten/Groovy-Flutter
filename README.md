@@ -3,11 +3,13 @@
 # Groovy — Money Mindfulness ✌🏽
 
 
-Flutter implementation of Groovy. Expect the latest and greatest in terms of features including:
+Flutter implementation of Groovy. Expect amazing stuff like:
 
 * Android support (FINALLY — thanks, Flutter!)
 * Dark mode 🌑🌙
-* Tablet mode (Master/Detail)
+* Notifications
+* Accept/decline shared budgets
+* Connect to bank account (paid version)
+* Export budgets to Google Sheets (paid version)
 * Real-time: all budget changes are reflected instantly on all platforms
-* Share: collaborate with anyone
 * Offline: automatically syncs data when network is present
