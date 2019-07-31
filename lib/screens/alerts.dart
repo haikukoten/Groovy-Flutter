@@ -256,7 +256,6 @@ class _AlertScreen extends State<AlertScreen> {
                         child: ListTile(
                           title: AutoSizeText(
                             "${user.name} shared ${notAcceptedBudget.name} with you",
-                            maxLines: 1,
                             style: TextStyle(
                                 fontWeight: FontWeight.w500,
                                 color: uiProvider.isLightTheme
@@ -272,6 +271,7 @@ class _AlertScreen extends State<AlertScreen> {
                                     decoration:
                                         BoxDecoration(shape: BoxShape.circle),
                                     width: double.infinity,
+                                    height: double.infinity,
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(180),
                                       child: FadeInImage(
@@ -287,20 +287,13 @@ class _AlertScreen extends State<AlertScreen> {
                               : CircleAvatar(
                                   backgroundColor: Color(0xffeae7ec),
                                   child: AutoSizeText(
-                                    "${user.name[0]}${user.name[1]}",
+                                    "${user.name[0]}",
                                     style: TextStyle(
                                         color: Colors.grey[800],
                                         fontWeight: FontWeight.w600,
-                                        fontSize: 24),
+                                        fontSize: 20),
                                   ),
                                 ),
-                          subtitle: AutoSizeText(
-                            "Tap to accept or decline",
-                            style: TextStyle(
-                                color: uiProvider.isLightTheme
-                                    ? Colors.grey[800]
-                                    : Colors.grey[400]),
-                          ),
                           onTap: () {
                             // show accept or decline modal for notAcceptedBudget
                             _showAcceptOrDeclineModal(user, notAcceptedBudget);

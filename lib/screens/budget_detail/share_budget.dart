@@ -65,6 +65,7 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
   }
 
   _getUsersForPhotos() {
+    _users = [];
     widget.budget.sharedWith.forEach((email) async {
       User user = await widget.userService.getUserFromEmail(_database, email);
       setState(() {
@@ -163,6 +164,8 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
           if (user.email != null) {
             await _sendNotificationTo(user);
           }
+
+          _getUsersForPhotos();
         }
       }
     }
@@ -195,6 +198,8 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
       // will check if budget exists in the user's budgets or notAcceptedBudgets and update it accordingly
       await userProvider.userService.updateSharedUsers(
           _database, budgetProvider.selectedBudget, budgetProvider);
+
+      _getUsersForPhotos();
     }
 
     Widget _showIcon() {
@@ -381,11 +386,11 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
                                   : CircleAvatar(
                                       backgroundColor: Color(0xffeae7ec),
                                       child: AutoSizeText(
-                                        "${_users[index].name[0]}${_users[index].name[1]}",
+                                        "${_users[index].name[0]}",
                                         style: TextStyle(
                                             color: Colors.grey[800],
                                             fontWeight: FontWeight.w600,
-                                            fontSize: 24),
+                                            fontSize: 20),
                                       ),
                                     ),
                               title: AutoSizeText(
@@ -511,11 +516,11 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
                                     : CircleAvatar(
                                         backgroundColor: Color(0xffeae7ec),
                                         child: AutoSizeText(
-                                          "${_users[index].name[0]}${_users[index].name[1]}",
+                                          "${_users[index].name[0]}",
                                           style: TextStyle(
                                               color: Colors.grey[800],
                                               fontWeight: FontWeight.w600,
-                                              fontSize: 24),
+                                              fontSize: 20),
                                         ),
                                       ),
                                 title: AutoSizeText(

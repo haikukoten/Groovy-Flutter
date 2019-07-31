@@ -475,7 +475,7 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                     "Swipe up to get started",
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                        fontSize: 18.0,
+                        fontSize: 16.0,
                         color: uiProvider.isLightTheme
                             ? Colors.black.withOpacity(0.6)
                             : Colors.white.withOpacity(0.6)),
