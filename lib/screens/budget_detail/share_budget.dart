@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:ui';
 import 'package:Groovy/models/budget.dart';
+import 'package:Groovy/models/not_accepted_budget.dart';
 import 'package:Groovy/models/user.dart';
 import 'package:Groovy/providers/budget_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
@@ -7,22 +9,26 @@ import 'package:Groovy/providers/user_provider.dart';
 import 'package:Groovy/screens/shared/swipe_actions/swipe_widget.dart';
 import 'package:Groovy/services/auth_service.dart';
 import 'package:Groovy/services/notification_service.dart';
+import 'package:Groovy/services/user_service.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:transparent_image/transparent_image.dart';
 import '../shared/utilities.dart';
 import 'package:email_validator/email_validator.dart';
 
 class ShareBudgetScreen extends StatefulWidget {
-  ShareBudgetScreen({Key key, this.budget, this.user, this.auth})
+  ShareBudgetScreen(
+      {Key key, this.budget, this.user, this.auth, this.userService})
       : super(key: key);
 
   final Budget budget;
   final FirebaseUser user;
   final BaseAuth auth;
+  final UserService userService;
 
   @override
   State<StatefulWidget> createState() => _ShareBudgetScreen();
@@ -40,10 +46,12 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
   double _finalDragAmount;
 
   String _email;
+  List<User> _users = [];
 
   @override
   void initState() {
     super.initState();
+    _getUsersForPhotos();
   }
 
   @override
@@ -54,6 +62,15 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
     // widget tree.
     _shareBudgetEmailTextController.dispose();
     super.dispose();
+  }
+
+  _getUsersForPhotos() {
+    widget.budget.sharedWith.forEach((email) async {
+      User user = await widget.userService.getUserFromEmail(_database, email);
+      setState(() {
+        _users.add(user);
+      });
+    });
   }
 
   @override
@@ -131,8 +148,12 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
           budgetProvider.selectedBudget.sharedWith = newSharedWith;
 
           // Share budget with new user (add to new user's notAcceptedBudgets)
+          var from =
+              "${widget.user.displayName}<<<===:::===>>>${widget.user.email}";
+          NotAcceptedBudget notAcceptedBudget =
+              NotAcceptedBudget.fromBudget(budgetProvider.selectedBudget, from);
           budgetProvider.budgetService
-              .shareBudget(_database, user, budgetProvider.selectedBudget);
+              .shareBudget(_database, user, notAcceptedBudget);
 
           // Update all users on sharedWith
           // will check if budget exists in the user's budgets or notAcceptedBudgets and update it accordingly
@@ -178,14 +199,16 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
 
     Widget _showIcon() {
       return Padding(
-        padding: const EdgeInsets.only(top: 16.0),
-        child: Container(
-          child: Center(
-            child: Icon(
-              Icons.account_circle,
-              color: Colors.grey[400],
-              size: 65,
-            ),
+        padding: const EdgeInsets.only(top: 12.0),
+        child: CircleAvatar(
+          radius: 33,
+          backgroundColor: Color(0xffeae7ec),
+          child: AutoSizeText(
+            budgetProvider.selectedBudget.name[0],
+            style: TextStyle(
+                color: Colors.grey[800],
+                fontWeight: FontWeight.w600,
+                fontSize: 24),
           ),
         ),
       );
@@ -281,13 +304,12 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
       return (budgetProvider.selectedBudget.sharedWith != null &&
               budgetProvider.selectedBudget.sharedWith.length > 1)
           ? Padding(
-              padding: const EdgeInsets.fromLTRB(0, 42.0, 0, 0),
+              padding: const EdgeInsets.fromLTRB(0, 42.0, 0, 12),
               child: Container(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   "Shared with:",
                   style: TextStyle(
-                      fontSize: 18.0,
                       fontWeight: FontWeight.w400,
                       color: uiProvider.isLightTheme
                           ? Colors.grey[700]
@@ -316,27 +338,76 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
                   },
                   physics: BouncingScrollPhysics(),
                   shrinkWrap: true,
-                  itemCount: budgetProvider.selectedBudget.sharedWith.length,
+                  itemCount: _users.length,
                   itemBuilder: (BuildContext context, int index) {
                     if (budgetProvider.selectedBudget.isShared &&
-                        budgetProvider.selectedBudget.sharedWith.length > 1) {
-                      String email =
-                          budgetProvider.selectedBudget.sharedWith[index];
-                      return email == widget.budget.createdBy
+                        _users.length > 1) {
+                      User user;
+                      if (_users != null) {
+                        user = _users[index];
+                      }
+
+                      String photo;
+                      if (user != null) {
+                        photo = user.photo;
+                      }
+                      return user.email == widget.budget.createdBy
                           ? ListTile(
                               contentPadding:
                                   EdgeInsets.only(left: 0.0, right: 0.0),
-                              title: Text(
-                                email,
+                              leading: user != null && photo != null
+                                  ? CircleAvatar(
+                                      backgroundColor: uiProvider.isLightTheme
+                                          ? Colors.grey[200]
+                                          : Colors.grey[600],
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                            shape: BoxShape.circle),
+                                        width: double.infinity,
+                                        height: double.infinity,
+                                        child: ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(180),
+                                          child: FadeInImage(
+                                            fit: BoxFit.cover,
+                                            placeholder:
+                                                MemoryImage(kTransparentImage),
+                                            image: MemoryImage(base64Decode(
+                                                _users[index].photo)),
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  : CircleAvatar(
+                                      backgroundColor: Color(0xffeae7ec),
+                                      child: AutoSizeText(
+                                        "${_users[index].name[0]}${_users[index].name[1]}",
+                                        style: TextStyle(
+                                            color: Colors.grey[800],
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 24),
+                                      ),
+                                    ),
+                              title: AutoSizeText(
+                                user.name,
+                                maxLines: 1,
                                 style: TextStyle(
-                                    fontSize: 18.0,
                                     fontWeight: FontWeight.w400,
                                     color: uiProvider.isLightTheme
                                         ? Colors.grey[700]
                                         : Colors.grey[400]),
                               ),
-                              trailing: email == widget.budget.createdBy
-                                  ? email == widget.user.email
+                              subtitle: AutoSizeText(
+                                user.email,
+                                maxLines: 1,
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w400,
+                                    color: uiProvider.isLightTheme
+                                        ? Colors.grey[700]
+                                        : Colors.grey[400]),
+                              ),
+                              trailing: user.email == widget.budget.createdBy
+                                  ? user.email == widget.user.email
                                       ? Text(
                                           "(Me)",
                                           style: TextStyle(
@@ -370,12 +441,12 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
                                     onPress: () {
                                       showAlertDialog(
                                           context,
-                                          email == widget.user.email
+                                          user.email == widget.user.email
                                               ? "Remove yourself?"
-                                              : "Remove $email?",
-                                          email == widget.user.email
+                                              : "Remove ${user.name}?",
+                                          user.email == widget.user.email
                                               ? "You will no longer be able to see this budget"
-                                              : "$email will no longer be able to see this budget",
+                                              : "${user.name} will no longer be able to see this budget",
                                           [
                                             FlatButton(
                                               child: Text(
@@ -402,7 +473,7 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
                                               ),
                                               onPressed: () {
                                                 setState(() {
-                                                  _removeShared(email);
+                                                  _removeShared(user.email);
                                                 });
                                                 Navigator.pop(context);
                                               },
@@ -414,16 +485,58 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
                               child: ListTile(
                                 contentPadding:
                                     EdgeInsets.only(left: 0.0, right: 0.0),
-                                title: Text(
-                                  email,
+                                leading: user != null && photo != null
+                                    ? CircleAvatar(
+                                        backgroundColor: uiProvider.isLightTheme
+                                            ? Colors.grey[200]
+                                            : Colors.grey[600],
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                              shape: BoxShape.circle),
+                                          width: double.infinity,
+                                          height: double.infinity,
+                                          child: ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(180),
+                                            child: FadeInImage(
+                                              fit: BoxFit.cover,
+                                              placeholder: MemoryImage(
+                                                  kTransparentImage),
+                                              image: MemoryImage(base64Decode(
+                                                  _users[index].photo)),
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    : CircleAvatar(
+                                        backgroundColor: Color(0xffeae7ec),
+                                        child: AutoSizeText(
+                                          "${_users[index].name[0]}${_users[index].name[1]}",
+                                          style: TextStyle(
+                                              color: Colors.grey[800],
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 24),
+                                        ),
+                                      ),
+                                title: AutoSizeText(
+                                  user.name,
+                                  maxLines: 1,
                                   style: TextStyle(
-                                      fontSize: 18.0,
-                                      fontWeight: FontWeight.w700,
+                                      fontWeight: FontWeight.w500,
                                       color: uiProvider.isLightTheme
                                           ? Colors.grey[800]
                                           : Colors.white),
                                 ),
-                                trailing: email == widget.user.email
+                                subtitle: AutoSizeText(
+                                  user.email,
+                                  maxLines: 1,
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w400,
+                                      color: uiProvider.isLightTheme
+                                          ? Colors.grey[900]
+                                          : Colors.grey[100]),
+                                ),
+                                trailing: user.email == widget.user.email
                                     ? Text(
                                         "(Me)",
                                         style: TextStyle(
@@ -435,12 +548,12 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
                                 onTap: () {
                                   showAlertDialog(
                                       context,
-                                      email == widget.user.email
+                                      user.email == widget.user.email
                                           ? "Remove yourself?"
-                                          : "Remove $email?",
-                                      email == widget.user.email
+                                          : "Remove ${user.name}?",
+                                      user.email == widget.user.email
                                           ? "You will no longer be able to see this budget"
-                                          : "$email will no longer be able to see this budget",
+                                          : "${user.name} will no longer be able to see this budget",
                                       [
                                         FlatButton(
                                           child: Text(
@@ -465,7 +578,7 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
                                           ),
                                           onPressed: () {
                                             setState(() {
-                                              _removeShared(email);
+                                              _removeShared(user.email);
                                             });
                                             Navigator.pop(context);
                                           },
@@ -531,19 +644,15 @@ class _ShareBudgetScreen extends State<ShareBudgetScreen> {
             title: AutoSizeText("Share ${budgetProvider.selectedBudget.name}",
                 maxLines: 1,
                 style: TextStyle(
-                    color:
-                        uiProvider.isLightTheme ? Colors.black : Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 20)),
+                  color: uiProvider.isLightTheme ? Colors.black : Colors.white,
+                )),
             backgroundColor:
                 uiProvider.isLightTheme ? Colors.white : Colors.black,
             textTheme: TextTheme(
-                title: TextStyle(
-                    color: Colors.black87,
-                    fontSize: 20.0,
-                    fontWeight: FontWeight.w500)),
+                title: TextStyle(color: Colors.black87, fontSize: 20.0)),
             iconTheme: IconThemeData(
-                color: uiProvider.isLightTheme ? Colors.black : Colors.white),
+                color:
+                    uiProvider.isLightTheme ? Colors.grey[700] : Colors.white),
             brightness:
                 uiProvider.isLightTheme ? Brightness.light : Brightness.dark,
             elevation: 0.0,

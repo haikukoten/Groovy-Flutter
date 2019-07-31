@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:Groovy/models/not_accepted_budget.dart';
 import 'package:firebase_database/firebase_database.dart';
 import '../models/budget.dart';
 import '../models/user.dart';
@@ -58,8 +59,8 @@ class BudgetService {
                 .child("users")
                 .child(user.key)
                 .child("notAcceptedBudgets")
-                .child(budget.key)
-                .set(budget.toJson());
+                .child(notAcceptedBudget.key)
+                .set(notAcceptedBudget.toJson());
           }
         });
       }
@@ -78,7 +79,7 @@ class BudgetService {
   }
 
   Future<void> shareBudget(
-      FirebaseDatabase database, User user, Budget budget) async {
+      FirebaseDatabase database, User user, NotAcceptedBudget budget) async {
     return await database
         .reference()
         .child("users")

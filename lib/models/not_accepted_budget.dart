@@ -1,3 +1,5 @@
+import 'budget.dart';
+
 class NotAcceptedBudget {
   String key;
   String from;
@@ -55,6 +57,20 @@ class NotAcceptedBudget {
         sharedWith = json['sharedWith'] as List<dynamic>,
         spent = json['spent'] as num,
         userDate = json['userDate'] as List<dynamic>;
+
+  NotAcceptedBudget.fromBudget(Budget budget, String from)
+      : key = budget.key,
+        from = from,
+        createdBy = budget.createdBy,
+        hiddenFrom = budget.hiddenFrom,
+        history = budget.history,
+        isShared = budget.isShared,
+        left = budget.left,
+        name = budget.name,
+        setAmount = budget.setAmount,
+        sharedWith = budget.sharedWith,
+        spent = budget.spent,
+        userDate = budget.userDate;
 
   Map toJson() {
     return {

@@ -72,7 +72,8 @@ class _DetermineAuthStatusScreenState extends State<DetermineAuthStatusScreen> {
       return await widget.userService
           .createUser(_firebaseMessaging, widget.userService, _database, user);
     } else {
-      return await widget.userService.updateUserDeviceTokens(
+      // Update user's device tokens
+      await widget.userService.updateUserDeviceTokens(
           _firebaseMessaging, widget.userService, _database, retrievedUser);
     }
   }

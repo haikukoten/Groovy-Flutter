@@ -11,7 +11,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../shared/swipe_actions/swipe_widget.dart';
 import '../shared/utilities.dart';
 
 class BudgetHistoryScreen extends StatefulWidget {
@@ -142,137 +141,94 @@ class _BudgetHistoryScreen extends State<BudgetHistoryScreen> {
                           .format(DateTime.fromMillisecondsSinceEpoch(
                               dateInMilliseconds))
                           .toString();
-                      return OnSlide(
-                        backgroundColor: uiProvider.isLightTheme
-                            ? Colors.white
-                            : Colors.grey[900],
-                        items: <ActionItems>[
-                          new ActionItems(
-                              icon: new IconButton(
-                                padding: EdgeInsets.only(left: 40.0),
-                                icon: new Icon(Icons.edit),
-                                onPressed: () {},
-                                color: uiProvider.isLightTheme
-                                    ? Colors.grey[700]
-                                    : Colors.grey[300],
-                              ),
-                              onPress: () {
-                                Navigator.of(context).push(MaterialPageRoute(
-                                    builder: (context) => EditHistoryScreen(
-                                        history: history, user: widget.user)));
-                              },
-                              backgroundColor: Colors.transparent),
-                          new ActionItems(
-                              icon: new IconButton(
-                                padding: EdgeInsets.only(left: 35.0),
-                                icon: new Icon(Icons.delete),
-                                onPressed: () {},
-                                color: uiProvider.isLightTheme
-                                    ? Colors.grey[700]
-                                    : Colors.grey[300],
-                              ),
-                              onPress: () {
-                                _showDeleteHistoryDialog(
-                                    budgetProvider.selectedBudget,
-                                    currency.format(amount),
-                                    amount,
-                                    user,
-                                    date,
-                                    history,
-                                    userDate);
-                              },
-                              backgroundColor: Colors.transparent),
-                        ],
-                        child: ListTile(
-                          contentPadding: EdgeInsets.only(
-                              left: 12.0, right: 12.0, bottom: 5.0),
-                          isThreeLine: true,
-                          title: Text(
-                            currency.format(amount),
-                            style: TextStyle(
-                                fontSize: 28.0,
-                                fontWeight: FontWeight.w700,
-                                color: uiProvider.isLightTheme
-                                    ? Colors.grey[800]
-                                    : Colors.white),
-                          ),
-                          subtitle: Padding(
-                            padding: EdgeInsets.only(top: 3.0),
-                            child: Text(
-                              "$note",
-                              style: TextStyle(
-                                  color: uiProvider.isLightTheme
-                                      ? Colors.grey[700]
-                                      : Colors.grey[400],
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 17.0),
-                            ),
-                          ),
-                          trailing: Text(
-                            "$date",
-                            style: TextStyle(
-                                color: uiProvider.isLightTheme
-                                    ? Colors.grey[700]
-                                    : Colors.grey[400]),
-                          ),
-                          onTap: () {
-                            showAlertDialog(
-                                context,
-                                "$note",
-                                "${currency.format(amount)} spent by $user on $date",
-                                [
-                                  FlatButton(
-                                    child: Text(
-                                      'Close',
-                                      style: TextStyle(color: Colors.grey),
-                                    ),
-                                    onPressed: () {
-                                      Navigator.of(context).pop();
-                                    },
-                                  ),
-                                  FlatButton(
-                                    child: Text(
-                                      'Edit',
-                                      style: TextStyle(
-                                          color: uiProvider.isLightTheme
-                                              ? Colors.black.withOpacity(0.9)
-                                              : Colors.white.withOpacity(0.9),
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                    onPressed: () {
-                                      Navigator.of(context).pop();
-                                      Navigator.of(context).push(
-                                          MaterialPageRoute(
-                                              builder: (context) =>
-                                                  EditHistoryScreen(
-                                                    history: history,
-                                                  )));
-                                    },
-                                  ),
-                                  FlatButton(
-                                    child: Text(
-                                      'Delete',
-                                      style: TextStyle(
-                                          color: uiProvider.isLightTheme
-                                              ? Colors.black.withOpacity(0.9)
-                                              : Colors.white.withOpacity(0.9),
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                      _showDeleteHistoryDialog(
-                                          budgetProvider.selectedBudget,
-                                          currency.format(amount),
-                                          amount,
-                                          user,
-                                          date,
-                                          history,
-                                          userDate);
-                                    },
-                                  )
-                                ]);
-                          },
+                      return ListTile(
+                        contentPadding: EdgeInsets.only(
+                            left: 12.0, right: 12.0, bottom: 5.0),
+                        title: Text(
+                          currency.format(amount),
+                          style: TextStyle(
+                              fontSize: 22.0,
+                              fontWeight: FontWeight.w500,
+                              color: uiProvider.isLightTheme
+                                  ? Colors.grey[800]
+                                  : Colors.white),
                         ),
+                        subtitle: Padding(
+                          padding: EdgeInsets.only(top: 3.0),
+                          child: Text(
+                            "$note",
+                            style: TextStyle(
+                                color: uiProvider.isLightTheme
+                                    ? Colors.grey[700]
+                                    : Colors.grey[400],
+                                fontWeight: FontWeight.w500,
+                                fontSize: 17.0),
+                          ),
+                        ),
+                        trailing: Text(
+                          "$date",
+                          style: TextStyle(
+                              color: uiProvider.isLightTheme
+                                  ? Colors.grey[700]
+                                  : Colors.grey[400]),
+                        ),
+                        onTap: () {
+                          showAlertDialog(
+                              context,
+                              "$note",
+                              "${currency.format(amount)} spent by $user on $date",
+                              [
+                                FlatButton(
+                                  child: Text(
+                                    'Close',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                ),
+                                FlatButton(
+                                  child: Text(
+                                    'Edit',
+                                    style: TextStyle(
+                                        color: uiProvider.isLightTheme
+                                            ? Colors.black.withOpacity(0.9)
+                                            : Colors.white.withOpacity(0.9),
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                    Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                EditHistoryScreen(
+                                                  history: history,
+                                                )));
+                                  },
+                                ),
+                                FlatButton(
+                                  child: Text(
+                                    'Delete',
+                                    style: TextStyle(
+                                        color: uiProvider.isLightTheme
+                                            ? Colors.black.withOpacity(0.9)
+                                            : Colors.white.withOpacity(0.9),
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                    _showDeleteHistoryDialog(
+                                        budgetProvider.selectedBudget,
+                                        currency.format(amount),
+                                        amount,
+                                        user,
+                                        date,
+                                        history,
+                                        userDate);
+                                  },
+                                )
+                              ]);
+                        },
                       );
                     }
                   }),
@@ -290,7 +246,7 @@ class _BudgetHistoryScreen extends State<BudgetHistoryScreen> {
                 "No history",
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 24.0,
+                    fontSize: 20.0,
                     color: uiProvider.isLightTheme
                         ? Colors.black.withOpacity(0.5)
                         : Colors.white.withOpacity(0.5)),
@@ -324,22 +280,18 @@ class _BudgetHistoryScreen extends State<BudgetHistoryScreen> {
           backgroundColor:
               uiProvider.isLightTheme ? Colors.white : Colors.grey[900],
           appBar: AppBar(
-            title: AutoSizeText("${budgetProvider.selectedBudget.name} History",
+            title: AutoSizeText("History",
                 maxLines: 1,
                 style: TextStyle(
                     color:
                         uiProvider.isLightTheme ? Colors.black : Colors.white,
-                    fontWeight: FontWeight.w600,
                     fontSize: 20)),
             backgroundColor:
                 uiProvider.isLightTheme ? Colors.white : Colors.black,
-            textTheme: TextTheme(
-                title: TextStyle(
-                    color: Colors.black87,
-                    fontSize: 20.0,
-                    fontWeight: FontWeight.w500)),
+            textTheme: TextTheme(title: TextStyle(color: Colors.black87)),
             iconTheme: IconThemeData(
-                color: uiProvider.isLightTheme ? Colors.black : Colors.white),
+                color:
+                    uiProvider.isLightTheme ? Colors.grey[700] : Colors.white),
             brightness:
                 uiProvider.isLightTheme ? Brightness.light : Brightness.dark,
             elevation: 0.0,

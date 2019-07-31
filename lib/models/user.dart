@@ -7,6 +7,7 @@ class User {
   String key;
   String name;
   String email;
+  String photo;
   List<dynamic> deviceTokens;
   bool isPaid;
   List<Budget> budgets;
@@ -17,6 +18,7 @@ class User {
       {this.key,
       this.name,
       this.email,
+      this.photo,
       this.deviceTokens,
       this.isPaid,
       this.budgets,
@@ -27,6 +29,7 @@ class User {
     key = snapshot.key;
     name = snapshot.value["name"];
     email = snapshot.value["email"];
+    photo = snapshot.value["photo"];
     deviceTokens = snapshot.value["deviceTokens"];
     isPaid = snapshot.value["isPaid"];
 
@@ -70,6 +73,7 @@ class User {
     key = map["key"];
     name = map["name"];
     email = map["email"];
+    photo = map["photo"];
     deviceTokens = map["deviceTokens"];
     isPaid = map["isPaid"];
 
@@ -130,6 +134,7 @@ class User {
     return {
       "name": name,
       "email": email,
+      "photo": photo,
       "deviceTokens": deviceTokens,
       "isPaid": isPaid,
       "budgets": budgetsObject,
@@ -139,6 +144,6 @@ class User {
   }
 
   String toString() {
-    return "key: $key, name: $name, email: $email, deviceTokens: $deviceTokens, isPaid: $isPaid, budgets: $budgets, notAcceptedBudgets: $notAcceptedBudgets, transactions: $transactions";
+    return "key: $key, name: $name, email: $email, photo: $photo, $deviceTokens, isPaid: $isPaid, budgets: $budgets, notAcceptedBudgets: $notAcceptedBudgets, transactions: $transactions";
   }
 }

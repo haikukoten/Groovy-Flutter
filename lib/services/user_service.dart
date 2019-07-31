@@ -16,6 +16,7 @@ class UserService {
 
     List<String> deviceTokens = [];
     deviceTokens.add(token);
+
     User user = User(
         email: firebaseUser.email,
         name: firebaseUser.displayName,

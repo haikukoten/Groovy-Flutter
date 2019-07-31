@@ -1,3 +1,5 @@
+import 'package:Groovy/models/not_accepted_budget.dart';
+
 class Budget {
   String key;
   String createdBy;
@@ -51,6 +53,19 @@ class Budget {
         sharedWith = json['sharedWith'] as List<dynamic>,
         spent = json['spent'] as num,
         userDate = json['userDate'] as List<dynamic>;
+
+  Budget.fromNotAcceptedBudget(NotAcceptedBudget budget)
+      : key = budget.key,
+        createdBy = budget.createdBy,
+        hiddenFrom = budget.hiddenFrom,
+        history = budget.history,
+        isShared = budget.isShared,
+        left = budget.left,
+        name = budget.name,
+        setAmount = budget.setAmount,
+        sharedWith = budget.sharedWith,
+        spent = budget.spent,
+        userDate = budget.userDate;
 
   Map toJson() {
     return {

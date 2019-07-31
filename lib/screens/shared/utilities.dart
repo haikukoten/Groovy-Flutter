@@ -1,9 +1,20 @@
+import 'dart:ui';
+import 'dart:math' as math;
+import 'package:Groovy/models/budget.dart';
 import 'package:Groovy/providers/ui_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:ui';
 import 'package:provider/provider.dart';
-import 'dart:math' as math;
+
+// Show 100% of circular indicator if spending is over 100%
+double buildPercentSpent(Budget budget) {
+  double percentSpent =
+      (budget.spent.floorToDouble() / budget.setAmount.floorToDouble());
+  if (percentSpent > 1) {
+    percentSpent = 1;
+  }
+  return percentSpent;
+}
 
 Widget showCircularProgress(BuildContext context) {
   var uiProvider = Provider.of<UIProvider>(context);
@@ -127,7 +138,7 @@ Future<void> showInputDialog(BuildContext context, Color color, Text title,
 }
 
 void modalBottomSheetMenu(
-    BuildContext context, UIProvider uiProvider, Widget body) {
+    BuildContext context, UIProvider uiProvider, Widget body, num height) {
   showModalBottomSheet(
       context: context,
       builder: (builder) {
@@ -139,7 +150,7 @@ void modalBottomSheetMenu(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(15.0, 0, 15.0, 15.0),
               child: Container(
-                height: 320.0,
+                height: height,
                 color: Colors.transparent,
                 child: Container(
                     decoration: BoxDecoration(

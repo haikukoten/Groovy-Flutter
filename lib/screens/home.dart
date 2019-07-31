@@ -70,7 +70,6 @@ class _HomeScreen extends State<HomeScreen> {
 
   _signOut() async {
     Navigator.pop(context);
-    Navigator.pop(context);
     var uiProvider = Provider.of<UIProvider>(context);
     var userProvider = Provider.of<UserProvider>(context);
 
@@ -105,9 +104,15 @@ class _HomeScreen extends State<HomeScreen> {
               onSignedOut: widget.onSignedOut,
             ),
             CardScreen(),
-            AlertScreen(),
+            AlertScreen(
+              auth: widget.auth,
+              userService: widget.userService,
+              user: widget.user,
+              currentUser: userProvider.currentUser,
+            ),
             ProfileScreen(
               user: widget.user,
+              userProvider: userProvider,
               userService: widget.userService,
               budgetService: widget.budgetService,
               auth: widget.auth,
@@ -253,17 +258,40 @@ class _HomeScreen extends State<HomeScreen> {
                     backgroundColor: uiProvider.isLightTheme
                         ? Colors.pink[300]
                         : Colors.pink[200],
-                    icon: Icon(
-                      Icons.notifications,
-                      color:
-                          uiProvider.isLightTheme ? Colors.black : Colors.white,
-                    ),
-                    activeIcon: Icon(
-                      Icons.notifications,
-                      color: uiProvider.isLightTheme
-                          ? Colors.pink[600]
-                          : Colors.pink[200],
-                    ),
+                    icon: userProvider.currentUser != null &&
+                            userProvider.currentUser.notAcceptedBudgets !=
+                                null &&
+                            userProvider.currentUser.notAcceptedBudgets.length >
+                                0
+                        ? Icon(
+                            Icons.notifications_active,
+                            color: uiProvider.isLightTheme
+                                ? Colors.black
+                                : Colors.white,
+                          )
+                        : Icon(
+                            Icons.notifications,
+                            color: uiProvider.isLightTheme
+                                ? Colors.black
+                                : Colors.white,
+                          ),
+                    activeIcon: userProvider.currentUser != null &&
+                            userProvider.currentUser.notAcceptedBudgets !=
+                                null &&
+                            userProvider.currentUser.notAcceptedBudgets.length >
+                                0
+                        ? Icon(
+                            Icons.notifications_active,
+                            color: uiProvider.isLightTheme
+                                ? Colors.pink[600]
+                                : Colors.pink[200],
+                          )
+                        : Icon(
+                            Icons.notifications,
+                            color: uiProvider.isLightTheme
+                                ? Colors.pink[600]
+                                : Colors.pink[200],
+                          ),
                     title: Text(
                       "Alerts",
                       style: TextStyle(

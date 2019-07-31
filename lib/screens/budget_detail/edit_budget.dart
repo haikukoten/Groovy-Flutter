@@ -112,8 +112,7 @@ class _EditBudgetScreen extends State<EditBudgetScreen> {
           initialValue: "${budgetProvider.selectedBudget.name}",
           style: TextStyle(
               color: uiProvider.isLightTheme ? Colors.grey[900] : Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold),
+              fontSize: 18),
           cursorColor: uiProvider.isLightTheme ? Colors.black87 : Colors.grey,
           keyboardAppearance:
               uiProvider.isLightTheme ? Brightness.light : Brightness.dark,
@@ -163,8 +162,7 @@ class _EditBudgetScreen extends State<EditBudgetScreen> {
             style: TextStyle(
                 color:
                     uiProvider.isLightTheme ? Colors.grey[900] : Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold),
+                fontSize: 18),
             cursorColor: uiProvider.isLightTheme ? Colors.black87 : Colors.grey,
             keyboardAppearance:
                 uiProvider.isLightTheme ? Brightness.light : Brightness.dark,
@@ -249,17 +247,14 @@ class _EditBudgetScreen extends State<EditBudgetScreen> {
                 style: TextStyle(
                     color:
                         uiProvider.isLightTheme ? Colors.black : Colors.white,
-                    fontWeight: FontWeight.w600,
                     fontSize: 20)),
             backgroundColor:
                 uiProvider.isLightTheme ? Colors.white : Colors.black,
             textTheme: TextTheme(
-                title: TextStyle(
-                    color: Colors.black87,
-                    fontSize: 20.0,
-                    fontWeight: FontWeight.w500)),
+                title: TextStyle(color: Colors.black87, fontSize: 20.0)),
             iconTheme: IconThemeData(
-                color: uiProvider.isLightTheme ? Colors.black : Colors.white),
+                color:
+                    uiProvider.isLightTheme ? Colors.grey[700] : Colors.white),
             brightness:
                 uiProvider.isLightTheme ? Brightness.light : Brightness.dark,
             elevation: 0.0,

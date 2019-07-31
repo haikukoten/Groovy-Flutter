@@ -10,6 +10,8 @@ import 'package:Groovy/screens/budget_detail/budget_detail.dart';
 import 'package:Groovy/screens/budget_detail/share_budget.dart';
 import 'package:Groovy/screens/budget_list/create_budget.dart';
 import 'package:Groovy/screens/request_notifications.dart';
+import 'package:Groovy/screens/shared/animated/fade_in.dart';
+import 'package:Groovy/screens/shared/utilities.dart';
 import 'package:Groovy/services/budget_service.dart';
 import 'package:Groovy/services/user_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -22,6 +24,7 @@ import 'package:flutter/material.dart';
 import 'package:Groovy/services/auth_service.dart';
 import 'package:Groovy/models/budget.dart';
 import 'package:overlay_support/overlay_support.dart';
+import 'package:percent_indicator/linear_percent_indicator.dart';
 import 'package:provider/provider.dart';
 import '../budget_detail/edit_budget.dart';
 import '../shared/swipe_actions/swipe_widget.dart';
@@ -53,7 +56,6 @@ class _BudgetListScreen extends State<BudgetListScreen> {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
   Query _userQuery;
-  final _currency = NumberFormat.simpleCurrency();
   SharedPreferences _preferences;
 
   StreamSubscription<Event> _onUserAddedSubscription;
@@ -209,10 +211,130 @@ class _BudgetListScreen extends State<BudgetListScreen> {
       ]);
     }
 
+    void _showOptionsModal(Budget budget) {
+      var uiProvider = Provider.of<UIProvider>(context);
+      modalBottomSheetMenu(
+          context,
+          uiProvider,
+          Column(
+            children: <Widget>[
+              Padding(
+                  padding: EdgeInsets.fromLTRB(0.0, 10.0, 0.0, 5.0),
+                  child: SizedBox(
+                    height: 55.0,
+                    width: double.infinity,
+                    child: RaisedButton(
+                      elevation: 0.0,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(32.0)),
+                      color: Colors.transparent,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          Text('Share',
+                              style: TextStyle(
+                                  fontSize: 18.0,
+                                  color: uiProvider.isLightTheme
+                                      ? Colors.black
+                                      : Colors.white)),
+                        ],
+                      ),
+                      onPressed: () {
+                        budgetProvider.selectedBudget = budget;
+                        userProvider.userService = widget.userService;
+                        budgetProvider.budgetService = widget.budgetService;
+                        Navigator.pop(context);
+                        Navigator.of(context).push(CupertinoPageRoute(
+                            fullscreenDialog: true,
+                            builder: (context) => ShareBudgetScreen(
+                                  budget: budgetProvider.selectedBudget,
+                                  user: widget.user,
+                                  userService: widget.userService,
+                                  auth: widget.auth,
+                                )));
+                      },
+                    ),
+                  )),
+              Divider(
+                color: Colors.grey[500],
+              ),
+              Padding(
+                  padding: EdgeInsets.fromLTRB(0.0, 5.0, 0.0, 5.0),
+                  child: SizedBox(
+                    height: 55.0,
+                    width: double.infinity,
+                    child: RaisedButton(
+                      elevation: 0.0,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(32.0)),
+                      color: Colors.transparent,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          Text('Edit',
+                              style: TextStyle(
+                                  fontSize: 18.0,
+                                  color: uiProvider.isLightTheme
+                                      ? Colors.black
+                                      : Colors.white)),
+                        ],
+                      ),
+                      onPressed: () {
+                        budgetProvider.selectedBudget = budget;
+                        userProvider.userService = widget.userService;
+                        budgetProvider.budgetService = widget.budgetService;
+                        Navigator.pop(context);
+                        Navigator.of(context).push(CupertinoPageRoute(
+                            fullscreenDialog: true,
+                            builder: (context) => EditBudgetScreen(
+                                  budget: budget,
+                                  user: widget.user,
+                                )));
+                      },
+                    ),
+                  )),
+              Divider(
+                color: Colors.grey[500],
+              ),
+              Padding(
+                  padding: EdgeInsets.fromLTRB(0.0, 5.0, 0.0, 5.0),
+                  child: SizedBox(
+                    height: 55.0,
+                    width: double.infinity,
+                    child: RaisedButton(
+                      elevation: 0.0,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(32.0)),
+                      color: Colors.transparent,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          Text('Delete',
+                              style: TextStyle(
+                                  fontSize: 18.0,
+                                  color: uiProvider.isLightTheme
+                                      ? Colors.purple[300]
+                                      : Color(0xffe0c3fc))),
+                        ],
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _deleteBudget(budget);
+                      },
+                    ),
+                  ))
+            ],
+          ),
+          240.0);
+    }
+
     Widget _showBudgetList() {
       if (userProvider.currentUser != null &&
           userProvider.currentUser.budgets != null &&
           userProvider.currentUser.budgets.length > 0) {
+        var budgets = userProvider.currentUser.budgets;
+        // alphabetize budgets
+        budgets.sort((a, b) => a.name.compareTo(b.name));
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
@@ -223,191 +345,107 @@ class _BudgetListScreen extends State<BudgetListScreen> {
               child: ListView.builder(
                   physics: BouncingScrollPhysics(),
                   shrinkWrap: true,
-                  itemCount: userProvider.currentUser.budgets.length,
+                  itemCount: budgets.length,
                   itemBuilder: (BuildContext context, int index) {
-                    String name = userProvider.currentUser.budgets[index].name;
-                    num spent = userProvider.currentUser.budgets[index].spent;
-                    num setAmount =
-                        userProvider.currentUser.budgets[index].setAmount;
-                    return OnSlide(
-                        items: <ActionItems>[
-                          new ActionItems(
-                              icon: new IconButton(
-                                icon: new Icon(Icons.edit),
-                                onPressed: () {},
-                                color: Colors.white,
+                    var budget = budgets[index];
+                    String name = budget.name;
+                    return FadeIn(
+                        0.5,
+                        Padding(
+                          padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
+                          child: Container(
+                            decoration: BoxDecoration(
+                                color: uiProvider.isLightTheme
+                                    ? Colors.white
+                                    : Colors.grey[800],
+                                boxShadow: [
+                                  BoxShadow(
+                                      color: uiProvider.isLightTheme
+                                          ? Colors.grey[200]
+                                          : Colors.black.withOpacity(0.5),
+                                      offset: Offset(5.0, 5.0),
+                                      blurRadius: 15,
+                                      spreadRadius: 5),
+                                ],
+                                borderRadius: BorderRadius.circular(8)),
+                            padding: EdgeInsets.fromLTRB(0, 12, 0, 12),
+                            child: ListTile(
+                              title: AutoSizeText(
+                                name,
+                                style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: uiProvider.isLightTheme
+                                        ? Colors.black
+                                        : Colors.white),
                               ),
-                              onPress: () {
+                              leading: CircleAvatar(
+                                radius: 35,
+                                backgroundColor: Color(0xffeae7ec),
+                                child: AutoSizeText(
+                                  name[0],
+                                  style: TextStyle(
+                                      color: Colors.grey[800],
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 24),
+                                ),
+                              ),
+                              subtitle: new LayoutBuilder(builder:
+                                  (BuildContext context,
+                                      BoxConstraints constraints) {
+                                return LinearPercentIndicator(
+                                  linearGradient: LinearGradient(
+                                      begin: Alignment.centerLeft,
+                                      end: Alignment.centerRight,
+                                      colors: uiProvider.isLightTheme
+                                          ? [
+                                              Colors.purple[200],
+                                              Color(0xffa88beb).withOpacity(0.7)
+                                            ]
+                                          : [
+                                              Colors.purple[300],
+                                              Color(0xffa88beb).withOpacity(0.9)
+                                            ]),
+                                  animation: true,
+                                  width: constraints.maxWidth * 0.95,
+                                  lineHeight: 7,
+                                  percent: buildPercentSpent(budget),
+                                  backgroundColor: uiProvider.isLightTheme
+                                      ? Colors.grey[300]
+                                      : Colors.black,
+                                  alignment: MainAxisAlignment.start,
+                                );
+                              }),
+                              trailing: budget.isShared
+                                  ? Icon(
+                                      Icons.account_circle,
+                                      color: Colors.grey.withOpacity(0.5),
+                                    )
+                                  : null,
+                              onTap: () {
+                                var budgetProvider =
+                                    Provider.of<BudgetProvider>(context);
                                 budgetProvider.selectedBudget =
                                     userProvider.currentUser.budgets[index];
+                                print(
+                                    "Selected budget ==> ${budgetProvider.selectedBudget}");
+                                var authProvider =
+                                    Provider.of<AuthProvider>(context);
+                                authProvider.auth = widget.auth;
                                 userProvider.userService = widget.userService;
                                 budgetProvider.budgetService =
                                     widget.budgetService;
-                                Navigator.of(context).push(CupertinoPageRoute(
-                                    fullscreenDialog: true,
-                                    builder: (context) => EditBudgetScreen(
-                                          budget: userProvider
-                                              .currentUser.budgets[index],
-                                          user: widget.user,
-                                        )));
-                              },
-                              backgroundColor: Colors.transparent),
-                          new ActionItems(
-                              icon: new IconButton(
-                                icon: new Icon(Icons.account_circle),
-                                onPressed: () {},
-                                color: Colors.white,
-                              ),
-                              onPress: () {
-                                budgetProvider.selectedBudget =
-                                    userProvider.currentUser.budgets[index];
-                                userProvider.userService = widget.userService;
-                                budgetProvider.budgetService =
-                                    widget.budgetService;
-                                Navigator.of(context).push(CupertinoPageRoute(
-                                    fullscreenDialog: true,
-                                    builder: (context) => ShareBudgetScreen(
-                                          budget: budgetProvider.selectedBudget,
+                                Navigator.of(context).push(MaterialPageRoute(
+                                    builder: (context) => BudgetDetailScreen(
                                           user: widget.user,
                                           auth: widget.auth,
+                                          userService: widget.userService,
                                         )));
                               },
-                              backgroundColor: Colors.transparent),
-                          new ActionItems(
-                              icon: new IconButton(
-                                icon: new Icon(Icons.delete),
-                                onPressed: () {},
-                                color: Colors.white,
-                              ),
-                              onPress: () {
-                                _deleteBudget(
+                              onLongPress: () {
+                                _showOptionsModal(
                                     userProvider.currentUser.budgets[index]);
                               },
-                              backgroundColor: Colors.transparent),
-                        ],
-                        child: Container(
-                          height: 120,
-                          padding: EdgeInsets.fromLTRB(32, 0, 32, 20),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(32.0),
-                          ),
-                          child: new ClipRect(
-                            child: new BackdropFilter(
-                              filter: new ImageFilter.blur(
-                                sigmaX: 15.0,
-                                sigmaY: 15.0,
-                              ),
-                              child: new Container(
-                                  decoration: new BoxDecoration(
-                                      borderRadius: BorderRadius.circular(32.0),
-                                      color: uiProvider.isLightTheme
-                                          ? Colors.white.withOpacity(0.5)
-                                          : Colors.black.withOpacity(0.5)),
-                                  child: Container(
-                                    child: Card(
-                                        borderOnForeground: false,
-                                        elevation: 0,
-                                        color: Colors.transparent,
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.all(
-                                                Radius.circular(32.0))),
-                                        child: InkWell(
-                                            splashColor: uiProvider.isLightTheme
-                                                ? Colors.grey[300]
-                                                    .withOpacity(0.5)
-                                                : Colors.grey[100]
-                                                    .withOpacity(0.1),
-                                            borderRadius: BorderRadius.all(
-                                                Radius.circular(32.0)),
-                                            onTap: () {
-                                              var budgetProvider =
-                                                  Provider.of<BudgetProvider>(
-                                                      context);
-                                              budgetProvider.selectedBudget =
-                                                  userProvider.currentUser
-                                                      .budgets[index];
-                                              print(
-                                                  "Selected budget ==> ${budgetProvider.selectedBudget}");
-                                              var authProvider =
-                                                  Provider.of<AuthProvider>(
-                                                      context);
-                                              authProvider.auth = widget.auth;
-                                              userProvider.userService =
-                                                  widget.userService;
-                                              budgetProvider.budgetService =
-                                                  widget.budgetService;
-                                              Navigator.of(context).push(
-                                                  MaterialPageRoute(
-                                                      builder: (context) =>
-                                                          BudgetDetailScreen(
-                                                            user: widget.user,
-                                                            auth: widget.auth,
-                                                          )));
-                                            },
-                                            child: Stack(
-                                              children: <Widget>[
-                                                ListTile(
-                                                  contentPadding:
-                                                      EdgeInsets.only(
-                                                          top: 11.0,
-                                                          left: 30.0),
-                                                  title: AutoSizeText(
-                                                    name,
-                                                    maxLines: 1,
-                                                    style: TextStyle(
-                                                        fontSize: 28.0,
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                        color: uiProvider
-                                                                .isLightTheme
-                                                            ? Colors.grey[800]
-                                                            : Colors.white),
-                                                  ),
-                                                  subtitle: Padding(
-                                                    padding: EdgeInsets.only(
-                                                        top: 5.0),
-                                                    child: AutoSizeText(
-                                                      "${_currency.format(spent)} of ${_currency.format(setAmount)}",
-                                                      maxLines: 1,
-                                                      style: TextStyle(
-                                                          color: uiProvider
-                                                                  .isLightTheme
-                                                              ? Colors.grey[700]
-                                                              : Colors
-                                                                  .grey[400],
-                                                          fontWeight:
-                                                              FontWeight.w700,
-                                                          fontSize: 17.0),
-                                                    ),
-                                                  ),
-                                                  trailing: Padding(
-                                                    padding:
-                                                        const EdgeInsets.only(
-                                                            right: 18.0),
-                                                    child: userProvider
-                                                            .currentUser
-                                                            .budgets[index]
-                                                            .isShared
-                                                        ? Icon(
-                                                            Icons
-                                                                .account_circle,
-                                                            color: uiProvider
-                                                                    .isLightTheme
-                                                                ? Colors
-                                                                    .grey[700]
-                                                                    .withOpacity(
-                                                                        0.4)
-                                                                : Colors
-                                                                    .grey[100]
-                                                                    .withOpacity(
-                                                                        0.4),
-                                                          )
-                                                        : null,
-                                                  ),
-                                                ),
-                                              ],
-                                            ))),
-                                  )),
                             ),
                           ),
                         ));
@@ -416,33 +454,35 @@ class _BudgetListScreen extends State<BudgetListScreen> {
           ],
         );
       } else {
-        return Container(
-          alignment: Alignment.center,
-          padding: EdgeInsets.only(bottom: 100.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Text(
-                "No budgets",
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 24.0,
-                    color: uiProvider.isLightTheme
-                        ? Colors.black.withOpacity(0.6)
-                        : Colors.white.withOpacity(0.6)),
+        return FadeIn(
+            0.5,
+            Container(
+              alignment: Alignment.center,
+              padding: EdgeInsets.only(bottom: 100.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Text(
+                    "No budgets",
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20.0,
+                        color: uiProvider.isLightTheme
+                            ? Colors.black.withOpacity(0.6)
+                            : Colors.white.withOpacity(0.6)),
+                  ),
+                  Text(
+                    "Swipe up to get started",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        fontSize: 18.0,
+                        color: uiProvider.isLightTheme
+                            ? Colors.black.withOpacity(0.6)
+                            : Colors.white.withOpacity(0.6)),
+                  ),
+                ],
               ),
-              Text(
-                "Swipe up to get started",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 18.0,
-                    color: uiProvider.isLightTheme
-                        ? Colors.black.withOpacity(0.6)
-                        : Colors.white.withOpacity(0.6)),
-              ),
-            ],
-          ),
-        );
+            ));
       }
     }
 
@@ -468,19 +508,45 @@ class _BudgetListScreen extends State<BudgetListScreen> {
         child: Stack(children: <Widget>[
           Positioned.fill(
             child: uiProvider.isLightTheme
-                ? backgroundGradientWithColors(Colors.white, Colors.grey[200])
+                ? backgroundWithSolidColor(Color(0xfff2f3fc))
                 : backgroundWithSolidColor(Colors.grey[900]),
           ),
           Scaffold(
             backgroundColor: Colors.transparent,
-            appBar: AppBar(
-              backgroundColor: Colors.transparent,
-              iconTheme: IconThemeData(color: Colors.white),
-              brightness:
-                  uiProvider.isLightTheme ? Brightness.light : Brightness.dark,
-              elevation: 0.0,
+            appBar: PreferredSize(
+              preferredSize: Size.fromHeight(40),
+              child: AppBar(
+                backgroundColor: Colors.transparent,
+                iconTheme: IconThemeData(color: Colors.white),
+                brightness: uiProvider.isLightTheme
+                    ? Brightness.light
+                    : Brightness.dark,
+                elevation: 0.0,
+              ),
             ),
-            body: _showBudgetList(),
+            body: Column(children: [
+              Expanded(
+                flex: 0,
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 0, 22),
+                    child: FadeIn(
+                        0.3,
+                        AutoSizeText(
+                          "Budgets",
+                          style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: uiProvider.isLightTheme
+                                  ? Colors.grey[900]
+                                  : Colors.white),
+                        )),
+                  ),
+                ),
+              ),
+              Expanded(flex: 1, child: _showBudgetList())
+            ]),
           ),
         ]));
   }

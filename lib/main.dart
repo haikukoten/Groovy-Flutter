@@ -1,4 +1,3 @@
-import 'package:Groovy/providers/user_provider.dart';
 import 'package:Groovy/screens/budget_detail/budget_history.dart';
 import 'package:Groovy/screens/budget_detail/edit_history.dart';
 import 'package:Groovy/screens/budget_detail/share_budget.dart';
@@ -19,6 +18,7 @@ import 'screens/budget_detail/budget_history.dart';
 import 'providers/auth_provider.dart';
 import 'providers/ui_provider.dart';
 import 'providers/budget_provider.dart';
+import 'package:Groovy/providers/user_provider.dart';
 import 'package:overlay_support/overlay_support.dart';
 
 // TODO: Update Android nav bar colors

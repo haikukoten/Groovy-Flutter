@@ -44,7 +44,7 @@ class _CardScreen extends State<CardScreen> {
         ),
         Positioned.fill(
           child: uiProvider.isLightTheme
-              ? backgroundGradientWithColors(Colors.white, Colors.grey[200])
+              ? backgroundWithSolidColor(Color(0xfff2f3fc))
               : backgroundWithSolidColor(Colors.grey[900]),
         ),
         _showTransactionList()
