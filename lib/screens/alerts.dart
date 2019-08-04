@@ -87,6 +87,38 @@ class _AlertScreen extends State<AlertScreen> {
     }
   }
 
+  Widget _showIcon() {
+    return Container(
+      child: Center(
+        child: Icon(
+          Icons.notifications,
+          color: Colors.grey[400],
+          size: 75,
+        ),
+      ),
+    );
+  }
+
+  Widget _showHelpText() {
+    return Padding(
+      padding: const EdgeInsets.all(18.0),
+      child: Container(
+        child: Center(
+          child: AutoSizeText(
+            "No alerts",
+            maxLines: 2,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 16,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showAcceptOrDeclineModal(
       User user, NotAcceptedBudget notAcceptedBudget) {
     var uiProvider = Provider.of<UIProvider>(context);
@@ -326,21 +358,22 @@ class _AlertScreen extends State<AlertScreen> {
           ],
         );
       } else {
-        return Container(
-          alignment: Alignment.center,
-          padding: EdgeInsets.only(bottom: 100.0),
-          child: Center(
-            child: Text(
-              "No alerts",
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20.0,
-                  color: uiProvider.isLightTheme
-                      ? Colors.black.withOpacity(0.6)
-                      : Colors.white.withOpacity(0.6)),
-            ),
-          ),
-        );
+        return Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
+              Expanded(
+                  flex: 7,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[_showIcon(), _showHelpText()],
+                  )),
+              Expanded(
+                  flex: 2,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: <Widget>[Text("")],
+                  )),
+            ]);
       }
     }
 

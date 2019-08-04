@@ -454,35 +454,33 @@ class _BudgetListScreen extends State<BudgetListScreen> {
           ],
         );
       } else {
-        return FadeIn(
-            0.5,
-            Container(
-              alignment: Alignment.center,
-              padding: EdgeInsets.only(bottom: 100.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Text(
-                    "No budgets",
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20.0,
-                        color: uiProvider.isLightTheme
-                            ? Colors.black.withOpacity(0.6)
-                            : Colors.white.withOpacity(0.6)),
-                  ),
-                  Text(
-                    "Swipe up to get started",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        fontSize: 16.0,
-                        color: uiProvider.isLightTheme
-                            ? Colors.black.withOpacity(0.6)
-                            : Colors.white.withOpacity(0.6)),
-                  ),
-                ],
+        return Container(
+          alignment: Alignment.center,
+          padding: EdgeInsets.only(bottom: 100.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Text(
+                "No budgets",
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20.0,
+                    color: uiProvider.isLightTheme
+                        ? Colors.black.withOpacity(0.6)
+                        : Colors.white.withOpacity(0.6)),
               ),
-            ));
+              Text(
+                "Swipe up to get started",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: 16.0,
+                    color: uiProvider.isLightTheme
+                        ? Colors.black.withOpacity(0.6)
+                        : Colors.white.withOpacity(0.6)),
+              ),
+            ],
+          ),
+        );
       }
     }
 
@@ -531,17 +529,15 @@ class _BudgetListScreen extends State<BudgetListScreen> {
                   alignment: Alignment.topLeft,
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 0, 0, 22),
-                    child: FadeIn(
-                        0.3,
-                        AutoSizeText(
-                          "Budgets",
-                          style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: uiProvider.isLightTheme
-                                  ? Colors.grey[900]
-                                  : Colors.white),
-                        )),
+                    child: AutoSizeText(
+                      "Budgets",
+                      style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: uiProvider.isLightTheme
+                              ? Colors.grey[900]
+                              : Colors.white),
+                    ),
                   ),
                 ),
               ),

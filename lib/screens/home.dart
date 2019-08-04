@@ -94,6 +94,8 @@ class _HomeScreen extends State<HomeScreen> {
     var userProvider = Provider.of<UserProvider>(context);
 
     return Scaffold(
+        backgroundColor:
+            uiProvider.isLightTheme ? Color(0xfff2f3fc) : Colors.grey[900],
         body: PageView(
           children: [
             BudgetListScreen(
@@ -103,7 +105,11 @@ class _HomeScreen extends State<HomeScreen> {
               auth: widget.auth,
               onSignedOut: widget.onSignedOut,
             ),
-            CardScreen(),
+            CardScreen(
+              auth: widget.auth,
+              user: widget.user,
+              currentUser: userProvider.currentUser,
+            ),
             AlertScreen(
               auth: widget.auth,
               userService: widget.userService,
