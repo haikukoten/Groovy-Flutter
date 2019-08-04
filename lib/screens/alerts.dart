@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:Groovy/models/budget.dart';
 import 'package:Groovy/models/not_accepted_budget.dart';
 import 'package:Groovy/models/user.dart';
+import 'package:Groovy/providers/budget_provider.dart';
 import 'package:Groovy/providers/ui_provider.dart';
 import 'package:Groovy/providers/user_provider.dart';
 import 'package:Groovy/screens/shared/utilities.dart';
@@ -67,6 +68,23 @@ class _AlertScreen extends State<AlertScreen> {
     newCurrentUser.notAcceptedBudgets
         .removeWhere((budget) => budget == notAcceptedBudget);
     userProvider.currentUser = newCurrentUser;
+  }
+
+  _removeCurrentUserFromBudgetSharedWith(Budget budget) async {
+    if (budget.sharedWith.contains(widget.user.email)) {
+      var sharedWith = [];
+      budget.sharedWith.forEach((email) => sharedWith.add(email));
+      sharedWith.removeWhere((email) => email == widget.user.email);
+      budget.sharedWith = sharedWith;
+
+      if (sharedWith.length == 1) {
+        budget.isShared = false;
+      }
+
+      var budgetProvider = Provider.of<BudgetProvider>(context);
+      await widget.userService
+          .updateSharedUsers(_database, budget, budgetProvider);
+    }
   }
 
   void _showAcceptOrDeclineModal(
@@ -199,6 +217,8 @@ class _AlertScreen extends State<AlertScreen> {
                             notAcceptedBudget);
                         widget.userService
                             .updateUser(_database, userProvider.currentUser);
+                        _removeCurrentUserFromBudgetSharedWith(
+                            Budget.fromNotAcceptedBudget(notAcceptedBudget));
                       });
                       Navigator.pop(context);
                     },
